@@ -8,8 +8,8 @@ jobs:
   scrape:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5   # v4 se v5 upgrade
+      - uses: actions/setup-python@v6   # v5 se v6 upgrade
         with:
           python-version: '3.10'
       - name: Install dependencies

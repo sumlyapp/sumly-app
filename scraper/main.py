@@ -36,7 +36,7 @@ def search_google_rss(category):
     try:
         resp = requests.get(rss_url, timeout=10)
         soup = BeautifulSoup(resp.content, 'xml')
-        items = soup.find_all('item')[:5]  # Top 5 articles
+        items = soup.find_all('item')[:5]
         
         results = []
         for item in items:
@@ -57,7 +57,7 @@ def scrape_article_text(url):
         }
         resp = requests.get(url, timeout=15, headers=headers)
         doc = Document(resp.text)
-        return doc.summary()  # Main article HTML
+        return doc.summary()
     except Exception as e:
         print(f"❌ Error scraping {url}: {e}")
         return ""
@@ -75,8 +75,8 @@ def summarize_text(text):
     try:
         chat_completion = groq_client.chat.completions.create(
             messages=[
-                {"role": "system", "content": "You are a summarization AI. Summarize the following article in exactly 2-3 concise sentences. Make it informative and easy to read."},
-                {"role": "user", "content": text[:4000]}  # Groq limit 4000 tokens
+                {"role": "system", "content": "You are a summarization AI. Summarize the following article in exactly 2-3 concise sentences."},
+                {"role": "user", "content": text[:4000]}
             ],
             model="llama3-8b-8192",
             temperature=0.3,
@@ -89,7 +89,7 @@ def summarize_text(text):
 def save_to_supabase(title, summary, source_url, category, published_at=""):
     """Summary ko Supabase mein save karo"""
     data = {
-        "title": title[:255],  # Max length for text field
+        "title": title[:255],
         "summary": summary,
         "source_url": source_url,
         "category": category,
@@ -115,35 +115,29 @@ def main():
     for category in CATEGORIES:
         print(f"\n📌 Searching: {category}")
         
-        # 1. Google RSS se articles fetch karo
         articles = search_google_rss(category)
         if not articles:
             print(f"⚠️ No articles found for {category}")
             continue
         
-        # 2. Top 2 articles process karo
         for idx, article in enumerate(articles[:2]):
             print(f"  📄 Processing #{idx+1}: {article['title'][:50]}...")
             
-            # 3. Article scrape karo
             html_content = scrape_article_text(article['link'])
             if not html_content:
                 print(f"  ⚠️ Could not scrape content, skipping...")
                 continue
             
-            # 4. Text extract karo
             text = clean_html_to_text(html_content)
             if len(text) < 200:
                 print(f"  ⚠️ Content too short, skipping...")
                 continue
             
-            # 5. Summary generate karo
             summary = summarize_text(text)
             if "failed" in summary.lower() or len(summary) < 10:
                 print(f"  ⚠️ Summary generation failed, skipping...")
                 continue
             
-            # 6. Supabase mein save karo
             success = save_to_supabase(
                 title=article['title'],
                 summary=summary,
@@ -155,7 +149,6 @@ def main():
             if success:
                 total_inserted += 1
             
-            # Rate limiting (Groq ko hit se bachne ke liye)
             time.sleep(2)
     
     print("-" * 50)

@@ -1,6 +1,4 @@
 requests
-beautifulsoup4
-readability-lxml
 supabase
 groq
 python-dotenv

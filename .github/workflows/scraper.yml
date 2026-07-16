@@ -21,6 +21,7 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
         run: |
           cd scraper
           python main.py

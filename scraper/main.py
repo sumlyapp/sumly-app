@@ -4,25 +4,25 @@ from groq import Groq
 import os
 import time
 from datetime import datetime
+from dotenv import load_dotenv
 
 # ========================
-# 🔥 ENVIRONMENT VARIABLES
+# 🔥 LOAD ENVIRONMENT VARIABLES
 # ========================
+load_dotenv()
+
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-NEWS_API_KEY = os.getenv("NEWS_API_KEY")  # <-- SIRF EK KEY (Abhi ke liye)
+NEWS_API_KEY = os.getenv("NEWS_API_KEY")
 
-# Fallback for local testing
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-    SUPABASE_URL = SUPABASE_URL or os.getenv("NEXT_PUBLIC_SUPABASE_URL")
-    SUPABASE_KEY = SUPABASE_KEY or os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-    GROQ_API_KEY = GROQ_API_KEY or os.getenv("GROQ_API_KEY")
-    NEWS_API_KEY = NEWS_API_KEY or os.getenv("NEWS_API_KEY")
-except:
-    pass
+# 🔥 Fallback for local testing
+if not SUPABASE_URL:
+    SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
+if not SUPABASE_KEY:
+    SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+if not GROQ_API_KEY:
+    GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 # ========================
 # 🔥 INITIALIZE CLIENTS
@@ -33,13 +33,11 @@ groq_client = Groq(api_key=GROQ_API_KEY)
 # ========================
 # 📌 CONFIGURATION
 # ========================
-# NewsData.io Categories Mapping
-# Note: "AI" ki koi category nahi hai, isliye hum usko "q=AI" search se fetch karenge
 CATEGORIES = [
     {"name": "Tech", "api_category": "technology"},
-    {"name": "AI", "api_category": None, "query": "artificial intelligence"},  # Search query
+    {"name": "AI", "api_category": None, "query": "artificial intelligence"},
     {"name": "Health", "api_category": "health"},
-    {"name": "Finance", "api_category": "business"},  # Finance business category mein aata hai
+    {"name": "Finance", "api_category": "business"},
     {"name": "Business", "api_category": "business"},
     {"name": "Science", "api_category": "science"},
     {"name": "Sports", "api_category": "sports"}
@@ -55,14 +53,13 @@ def fetch_articles(category_config):
     params = {
         "apikey": NEWS_API_KEY,
         "language": "en",
-        "size": 20,  # 20 articles per call
+        "size": 20,
     }
     
-    # 🔥 Agar category hai toh category parameter daalo, warna search query (q) daalo
     if category_config["api_category"]:
         params["category"] = category_config["api_category"]
     else:
-        params["q"] = category_config["query"]  # AI ke liye "artificial intelligence" search
+        params["q"] = category_config["query"]
     
     try:
         response = requests.get(url, params=params, timeout=15)
@@ -78,7 +75,7 @@ def fetch_articles(category_config):
                 "title": item.get("title", "No title"),
                 "description": item.get("description", ""),
                 "url": item.get("link", ""),
-                "image_url": item.get("image_url", ""),  # 🔥 IMAGE URL
+                "image_url": item.get("image_url", ""),
                 "publishedAt": item.get("pubDate", "")
             })
         return articles
@@ -87,7 +84,7 @@ def fetch_articles(category_config):
         return []
 
 # ========================
-# 🤖 GROQ SUMMARIZER (With Number Safety)
+# 🤖 GROQ SUMMARIZER
 # ========================
 def summarize_text(text):
     """Groq API se summary generate karo"""
@@ -120,16 +117,15 @@ def summarize_text(text):
 def save_to_supabase(title, summary, source_url, category, image_url, published_at=""):
     """Summary ko Supabase mein save karo"""
     
-    # 🔥 Agar image_url empty hai toh default (fallback) image daalo
     if not image_url or len(image_url) < 10:
-        image_url = "https://via.placeholder.com/400x200/cccccc/ffffff?text=News"  # Dummy Image
+        image_url = "https://via.placeholder.com/400x200/cccccc/ffffff?text=News"
     
     data = {
         "title": title[:255],
         "summary": summary,
         "source_url": source_url,
         "category": category,
-        "image_url": image_url,  # 🔥 NAYA COLUMN
+        "image_url": image_url,
         "published_at": published_at,
         "created_at": datetime.utcnow().isoformat()
     }
@@ -164,19 +160,16 @@ def main():
         for idx, article in enumerate(articles):
             print(f"  📄 Processing #{idx+1}: {article['title'][:50]}...")
             
-            # Description se text lo
             text = article.get('description', '')
             if not text or len(text) < 50:
                 print(f"  ⚠️ Description too short, skipping...")
                 continue
             
-            # Groq se summary banao
             summary = summarize_text(text)
             if "failed" in summary.lower() or len(summary) < 5:
                 print(f"  ⚠️ Summary failed, skipping...")
                 continue
             
-            # Database mein save karo
             success = save_to_supabase(
                 title=article['title'],
                 summary=summary,
@@ -189,12 +182,10 @@ def main():
             if success:
                 total_inserted += 1
             
-            # Rate limit avoid karne ke liye 1 second ka gap
             time.sleep(1)
     
     print("-" * 50)
     print(f"✅ Finished! Inserted {total_inserted} new summaries.")
-    print("💡 Tip: Check your Supabase 'summaries' table for image_url column!")
 
 if __name__ == "__main__":
     main()

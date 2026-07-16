@@ -10,14 +10,12 @@ export default function FeedPage() {
 
   useEffect(() => {
     const fetchFeed = async () => {
-      // Check if user is logged in
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         router.push('/login')
         return
       }
 
-      // Get user's interests
       const { data: interests } = await supabase
         .from('user_interests')
         .select('category')
@@ -25,12 +23,10 @@ export default function FeedPage() {
 
       const categories = interests?.map(i => i.category) || []
       
-      // Fetch summaries based on interests
       let query = supabase.from('summaries').select('*')
       if (categories.length > 0) {
         query = query.in('category', categories)
       }
-      
       const { data, error } = await query.order('created_at', { ascending: false })
       
       if (error) {
@@ -60,6 +56,8 @@ export default function FeedPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-cyan-800 to-teal-700 p-4">
       <div className="max-w-2xl mx-auto">
+        
+        {/* Header */}
         <div className="flex justify-between items-center py-4 mb-4">
           <h1 className="text-2xl font-bold text-white">📰 Your Feed</h1>
           <button 
@@ -76,25 +74,59 @@ export default function FeedPage() {
             <p className="text-white/50 text-sm mt-2">Check back later or try different interests!</p>
           </div>
         ) : (
+          // 🔥 VERTICAL CARDS: space-y-4 ensures they stack vertically
           <div className="space-y-4">
             {summaries.map((item) => (
               <div 
                 key={item.id} 
-                className="bg-white/10 backdrop-blur-md rounded-xl shadow-lg p-5 border border-white/20 hover:bg-white/20 transition"
+                className="bg-white/10 backdrop-blur-md rounded-xl shadow-lg border border-white/20 hover:bg-white/20 transition overflow-hidden"
               >
-                <span className="text-xs font-bold text-teal-300 bg-teal-500/30 px-2 py-1 rounded-full">
-                  {item.category}
-                </span>
-                <h3 className="text-lg font-semibold mt-2 text-white">{item.title}</h3>
-                <p className="text-white/70 text-sm mt-1">{item.summary}</p>
-                <a 
-                  href={item.source_url} 
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-teal-300 text-sm font-medium mt-3 inline-block hover:text-white transition"
-                >
-                  Read Full Article →
-                </a>
+                {/* 🔥 IMAGE ON TOP (Vertical Card) */}
+                {item.image_url && (
+                  <div className="w-full h-48 bg-gray-800">
+                    <img 
+                      src={item.image_url} 
+                      alt={item.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        // 🔥 Agar image fail ho toh fallback show karo
+                        e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='200' viewBox='0 0 400 200'%3E%3Crect width='400' height='200' fill='%231e293b'/%3E%3Ctext x='200' y='110' font-family='sans-serif' font-size='20' fill='%2394a3b8' text-anchor='middle'%3ENo Image%3C/text%3E%3C/svg%3E"
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Content */}
+                <div className="p-5">
+                  <span className="text-xs font-bold text-teal-300 bg-teal-500/30 px-2 py-1 rounded-full">
+                    {item.category}
+                  </span>
+                  
+                  <h3 className="text-lg font-semibold mt-2 text-white">{item.title}</h3>
+                  <p className="text-white/70 text-sm mt-1">{item.summary}</p>
+                  
+                  {/* 🔥 SOURCE NAME AS CLICKABLE LINK */}
+                  <div className="mt-3 flex items-center justify-between">
+                    <a 
+                      href={item.source_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-sm font-medium text-teal-300 hover:text-white hover:underline transition"
+                    >
+                      {item.source_name || 'Unknown Source'} →
+                    </a>
+                    
+                    {/* Alternative "Read Full Article" if you still want it */}
+                    <a 
+                      href={item.source_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-xs text-white/40 hover:text-white transition underline"
+                    >
+                      Read
+                    </a>
+                  </div>
+                </div>
               </div>
             ))}
           </div>

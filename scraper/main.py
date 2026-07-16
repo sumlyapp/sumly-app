@@ -69,13 +69,13 @@ def clean_html_to_text(html):
 
 def summarize_text(text):
     """Groq API se summary generate karo"""
-    if not text or len(text) < 100:
+    if not text or len(text) < 50:
         return "No content to summarize."
     
     try:
         chat_completion = groq_client.chat.completions.create(
             messages=[
-                {"role": "system", "content": "You are a summarization AI. Summarize the following article in exactly 2-3 concise sentences."},
+                {"role": "system", "content": "You are a summarization AI. Summarize the following article in exactly 2-3 concise sentences. Make it informative and easy to read."},
                 {"role": "user", "content": text[:4000]}
             ],
             model="llama3-8b-8192",
@@ -129,7 +129,7 @@ def main():
                 continue
             
             text = clean_html_to_text(html_content)
-            if len(text) < 200:
+            if len(text) < 50:
                 print(f"  ⚠️ Content too short, skipping...")
                 continue
             

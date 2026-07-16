@@ -29,21 +29,23 @@ groq_client = Groq(api_key=GROQ_API_KEY)
 CATEGORIES = ["Tech", "AI", "Health", "Finance", "Business", "Science"]
 
 def search_google_rss(category):
-    """Google News RSS se articles fetch karo"""
+    """Google News RSS se articles fetch karo (Ab description bhi le raha hai)"""
     search_term = category.lower()
     rss_url = f"https://news.google.com/rss/search?q={search_term}&hl=en-US&gl=US&ceid=US:en"
     
     try:
         resp = requests.get(rss_url, timeout=10)
         soup = BeautifulSoup(resp.content, 'xml')
-        items = soup.find_all('item')[:5]
+        items = soup.find_all('item')[:5]  # Top 5 articles
         
         results = []
         for item in items:
             title = item.title.text if item.title else "No title"
             link = item.link.text if item.link else ""
             pub_date = item.pubDate.text if item.pubDate else ""
-            results.append({"title": title, "link": link, "date": pub_date})
+            # 🔥 Naya: Description bhi le rahe hain (fallback ke liye)
+            description = item.description.text if item.description else ""
+            results.append({"title": title, "link": link, "date": pub_date, "description": description})
         return results
     except Exception as e:
         print(f"❌ Error searching {category}: {e}")
@@ -55,7 +57,7 @@ def scrape_article_text(url):
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
-        resp = requests.get(url, timeout=15, headers=headers)
+        resp = requests.get(url, timeout=15, headers=headers, allow_redirects=True)
         doc = Document(resp.text)
         return doc.summary()
     except Exception as e:
@@ -123,21 +125,37 @@ def main():
         for idx, article in enumerate(articles[:2]):
             print(f"  📄 Processing #{idx+1}: {article['title'][:50]}...")
             
+            # 1. Pehle scraped text lo
             html_content = scrape_article_text(article['link'])
-            if not html_content:
-                print(f"  ⚠️ Could not scrape content, skipping...")
+            text = ""
+            
+            if html_content:
+                text = clean_html_to_text(html_content)
+            
+            # 🔥 2. FALLBACK: Agar text 200 characters se kam hai toh RSS description use karo
+            if len(text) < 200:
+                print(f"  ⚠️ Scraped content too short ({len(text)} chars). Using RSS description as fallback...")
+                # RSS description pehle se hi short summary hoti hai
+                fallback_text = article.get('description', '')
+                if fallback_text and len(fallback_text) > 50:
+                    text = fallback_text  # isko summarize karne bhej do (ya direct use karo)
+                else:
+                    # Agar description bhi na ho toh skip
+                    print(f"  ⚠️ No fallback text available, skipping...")
+                    continue
+            
+            # Agar text 200 chars se kam hai aur fallback bhi kaam nahi aaya, toh skip
+            if len(text) < 200:
+                print(f"  ⚠️ Final text too short ({len(text)} chars), skipping...")
                 continue
             
-            text = clean_html_to_text(html_content)
-            if len(text) < 50:
-                print(f"  ⚠️ Content too short, skipping...")
-                continue
-            
+            # 3. Summary generate karo
             summary = summarize_text(text)
             if "failed" in summary.lower() or len(summary) < 10:
                 print(f"  ⚠️ Summary generation failed, skipping...")
                 continue
             
+            # 4. Supabase mein save karo
             success = save_to_supabase(
                 title=article['title'],
                 summary=summary,

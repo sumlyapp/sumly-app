@@ -9,23 +9,12 @@ from dotenv import load_dotenv
 # ========================
 # 🔥 LOAD ENVIRONMENT
 # ========================
-print("🔍 Current Directory:", os.getcwd())
 load_dotenv()
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 NEWS_API_KEY = os.getenv("NEWS_API_KEY")
-
-print(f"🔍 SUPABASE_URL: {SUPABASE_URL}")
-print(f"🔍 NEWS_API_KEY: {NEWS_API_KEY[:10] if NEWS_API_KEY else 'NOT FOUND'}...")
-
-# ========================
-# 🛑 VALIDATE ENV
-# ========================
-if not SUPABASE_URL or not SUPABASE_KEY or not GROQ_API_KEY or not NEWS_API_KEY:
-    print("❌ Missing environment variables! Check .env file.")
-    exit(1)
 
 # ========================
 # 🔥 INITIALIZE CLIENTS
@@ -50,13 +39,11 @@ CATEGORIES = [
 # 📡 FETCH FROM NEWS API
 # ========================
 def fetch_articles(category_config):
-    """NewsData.io se articles fetch karo"""
     url = "https://newsdata.io/api/1/news"
-    
     params = {
         "apikey": NEWS_API_KEY,
         "language": "en",
-        "size": 10,  # 🔥 FIXED: 20 se 10 kar diya (Free tier max 10)
+        "size": 10,  # 10 articles per call
     }
     
     if category_config["api_category"]:
@@ -68,12 +55,8 @@ def fetch_articles(category_config):
         response = requests.get(url, params=params, timeout=15)
         data = response.json()
         
-        print(f"🔍 Full API Response: {data}")
-        
-        # 🔥 FIXED: Error message results ke andar hai
         if data.get("status") != "success":
-            error_msg = data.get('results', {}).get('message', 'Unknown error')
-            print(f"⚠️ API Error: {error_msg}")
+            print(f"⚠️ API Error: {data.get('message', 'Unknown error')}")
             return []
         
         results = data.get("results", [])
@@ -84,18 +67,18 @@ def fetch_articles(category_config):
                 "description": item.get("description", ""),
                 "url": item.get("link", ""),
                 "image_url": item.get("image_url", ""),
-                "publishedAt": item.get("pubDate", "")
+                "publishedAt": item.get("pubDate", ""),
+                "source_name": item.get("source_name", item.get("source_id", "Unknown Source"))  # 🔥 SOURCE NAME
             })
         return articles
     except Exception as e:
-        print(f"❌ Fetch Exception: {e}")
+        print(f"❌ Error fetching: {e}")
         return []
 
 # ========================
 # 🤖 GROQ SUMMARIZER
 # ========================
 def summarize_text(text):
-    """Groq API se summary generate karo"""
     if not text or len(text) < 20:
         return "No content to summarize."
     
@@ -122,11 +105,13 @@ def summarize_text(text):
 # ========================
 # 💾 SAVE TO SUPABASE
 # ========================
-def save_to_supabase(title, summary, source_url, category, image_url, published_at=""):
+def save_to_supabase(title, summary, source_url, category, image_url, source_name, published_at=""):
     """Summary ko Supabase mein save karo"""
     
+    # 🔥 IMAGE FALLBACK: Agar image nahi hai toh local placeholder
     if not image_url or len(image_url) < 10:
-        image_url = "https://via.placeholder.com/400x200/cccccc/ffffff?text=News"
+        # Better placeholder (SVG data URI)
+        image_url = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='200' viewBox='0 0 400 200'%3E%3Crect width='400' height='200' fill='%23e2e8f0'/%3E%3Ctext x='200' y='110' font-family='sans-serif' font-size='20' fill='%2364748b' text-anchor='middle'%3ENo Image%3C/text%3E%3C/svg%3E"
     
     data = {
         "title": title[:255],
@@ -134,6 +119,7 @@ def save_to_supabase(title, summary, source_url, category, image_url, published_
         "source_url": source_url,
         "category": category,
         "image_url": image_url,
+        "source_name": source_name,  # 🔥 SOURCE NAME
         "published_at": published_at,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
@@ -184,6 +170,7 @@ def main():
                 source_url=article['url'],
                 category=cat_name,
                 image_url=article['image_url'],
+                source_name=article['source_name'],  # 🔥 PASS SOURCE NAME
                 published_at=article.get('publishedAt', '')
             )
             

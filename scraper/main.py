@@ -1,176 +1,200 @@
 import requests
-from bs4 import BeautifulSoup
-from readability import Document
 from supabase import create_client, Client
 from groq import Groq
 import os
 import time
 from datetime import datetime
 
-# 🔥 Environment Variables (GitHub Secrets se aayenge)
+# ========================
+# 🔥 ENVIRONMENT VARIABLES
+# ========================
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+NEWS_API_KEY = os.getenv("NEWS_API_KEY")  # <-- SIRF EK KEY (Abhi ke liye)
 
-# 🔥 Fallback for local testing (dotenv se)
+# Fallback for local testing
 try:
     from dotenv import load_dotenv
     load_dotenv()
     SUPABASE_URL = SUPABASE_URL or os.getenv("NEXT_PUBLIC_SUPABASE_URL")
     SUPABASE_KEY = SUPABASE_KEY or os.getenv("SUPABASE_SERVICE_ROLE_KEY")
     GROQ_API_KEY = GROQ_API_KEY or os.getenv("GROQ_API_KEY")
+    NEWS_API_KEY = NEWS_API_KEY or os.getenv("NEWS_API_KEY")
 except:
     pass
 
-# 🔥 Initialize Clients
+# ========================
+# 🔥 INITIALIZE CLIENTS
+# ========================
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 groq_client = Groq(api_key=GROQ_API_KEY)
 
-CATEGORIES = ["Tech", "AI", "Health", "Finance", "Business", "Science"]
+# ========================
+# 📌 CONFIGURATION
+# ========================
+# NewsData.io Categories Mapping
+# Note: "AI" ki koi category nahi hai, isliye hum usko "q=AI" search se fetch karenge
+CATEGORIES = [
+    {"name": "Tech", "api_category": "technology"},
+    {"name": "AI", "api_category": None, "query": "artificial intelligence"},  # Search query
+    {"name": "Health", "api_category": "health"},
+    {"name": "Finance", "api_category": "business"},  # Finance business category mein aata hai
+    {"name": "Business", "api_category": "business"},
+    {"name": "Science", "api_category": "science"},
+    {"name": "Sports", "api_category": "sports"}
+]
 
-def search_google_rss(category):
-    """Google News RSS se articles fetch karo (Ab description bhi le raha hai)"""
-    search_term = category.lower()
-    rss_url = f"https://news.google.com/rss/search?q={search_term}&hl=en-US&gl=US&ceid=US:en"
+# ========================
+# 📡 FETCH FROM NEWS API
+# ========================
+def fetch_articles(category_config):
+    """NewsData.io se articles fetch karo"""
+    url = "https://newsdata.io/api/1/news"
+    
+    params = {
+        "apikey": NEWS_API_KEY,
+        "language": "en",
+        "size": 20,  # 20 articles per call
+    }
+    
+    # 🔥 Agar category hai toh category parameter daalo, warna search query (q) daalo
+    if category_config["api_category"]:
+        params["category"] = category_config["api_category"]
+    else:
+        params["q"] = category_config["query"]  # AI ke liye "artificial intelligence" search
     
     try:
-        resp = requests.get(rss_url, timeout=10)
-        soup = BeautifulSoup(resp.content, 'xml')
-        items = soup.find_all('item')[:5]  # Top 5 articles
+        response = requests.get(url, params=params, timeout=15)
+        data = response.json()
         
-        results = []
-        for item in items:
-            title = item.title.text if item.title else "No title"
-            link = item.link.text if item.link else ""
-            pub_date = item.pubDate.text if item.pubDate else ""
-            # 🔥 Naya: Description bhi le rahe hain (fallback ke liye)
-            description = item.description.text if item.description else ""
-            results.append({"title": title, "link": link, "date": pub_date, "description": description})
-        return results
+        if data.get("status") != "success":
+            print(f"⚠️ API Error: {data.get('message', 'Unknown error')}")
+            return []
+        
+        articles = []
+        for item in data.get("results", []):
+            articles.append({
+                "title": item.get("title", "No title"),
+                "description": item.get("description", ""),
+                "url": item.get("link", ""),
+                "image_url": item.get("image_url", ""),  # 🔥 IMAGE URL
+                "publishedAt": item.get("pubDate", "")
+            })
+        return articles
     except Exception as e:
-        print(f"❌ Error searching {category}: {e}")
+        print(f"❌ Error fetching: {e}")
         return []
 
-def scrape_article_text(url):
-    """Article ka HTML scrape karo aur sirf main text extract karo"""
-    try:
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-        resp = requests.get(url, timeout=15, headers=headers, allow_redirects=True)
-        doc = Document(resp.text)
-        return doc.summary()
-    except Exception as e:
-        print(f"❌ Error scraping {url}: {e}")
-        return ""
-
-def clean_html_to_text(html):
-    """HTML se sirf text extract karo"""
-    soup = BeautifulSoup(html, 'html.parser')
-    return soup.get_text(separator=' ', strip=True)
-
+# ========================
+# 🤖 GROQ SUMMARIZER (With Number Safety)
+# ========================
 def summarize_text(text):
     """Groq API se summary generate karo"""
-    if not text or len(text) < 50:
+    if not text or len(text) < 20:
         return "No content to summarize."
     
     try:
         chat_completion = groq_client.chat.completions.create(
             messages=[
-                {"role": "system", "content": "You are a summarization AI. Summarize the following article in exactly 2-3 concise sentences. Make it informative and easy to read."},
+                {"role": "system", "content": """You are a strict summarizer. 
+                Summarize the following article in exactly 2 short sentences (max 40 words). 
+                RULES: 
+                1. If the original text contains exact numbers (e.g., '45%', '2 million'), retain them exactly.
+                2. Do NOT invent, guess, or approximate any numbers.
+                3. If no numbers exist, simply describe the context.
+                4. Keep it mobile-friendly and crisp."""},
                 {"role": "user", "content": text[:4000]}
             ],
             model="llama3-8b-8192",
-            temperature=0.3,
+            temperature=0.2,
         )
         return chat_completion.choices[0].message.content
     except Exception as e:
         print(f"❌ Groq Error: {e}")
-        return "Summary failed to generate."
+        return "Summary failed."
 
-def save_to_supabase(title, summary, source_url, category, published_at=""):
+# ========================
+# 💾 SAVE TO SUPABASE
+# ========================
+def save_to_supabase(title, summary, source_url, category, image_url, published_at=""):
     """Summary ko Supabase mein save karo"""
+    
+    # 🔥 Agar image_url empty hai toh default (fallback) image daalo
+    if not image_url or len(image_url) < 10:
+        image_url = "https://via.placeholder.com/400x200/cccccc/ffffff?text=News"  # Dummy Image
+    
     data = {
         "title": title[:255],
         "summary": summary,
         "source_url": source_url,
         "category": category,
+        "image_url": image_url,  # 🔥 NAYA COLUMN
         "published_at": published_at,
         "created_at": datetime.utcnow().isoformat()
     }
     
     try:
-        result = supabase.table("summaries").insert(data).execute()
+        supabase.table("summaries").insert(data).execute()
         print(f"✅ Inserted: {title[:50]}...")
         return True
     except Exception as e:
         print(f"❌ DB Insert Error: {e}")
         return False
 
+# ========================
+# 🚀 MAIN FUNCTION
+# ========================
 def main():
-    print("🚀 Scraper Bot Started!")
+    print("🚀 NewsData.io Scraper Started!")
     print(f"📅 Time: {datetime.utcnow().isoformat()}")
     print("-" * 50)
     
     total_inserted = 0
     
-    for category in CATEGORIES:
-        print(f"\n📌 Searching: {category}")
+    for cat in CATEGORIES:
+        cat_name = cat["name"]
+        print(f"\n📌 Fetching: {cat_name}")
         
-        articles = search_google_rss(category)
+        articles = fetch_articles(cat)
         if not articles:
-            print(f"⚠️ No articles found for {category}")
+            print(f"⚠️ No articles found for {cat_name}")
             continue
         
-        for idx, article in enumerate(articles[:2]):
+        for idx, article in enumerate(articles):
             print(f"  📄 Processing #{idx+1}: {article['title'][:50]}...")
             
-            # 1. Pehle scraped text lo
-            html_content = scrape_article_text(article['link'])
-            text = ""
-            
-            if html_content:
-                text = clean_html_to_text(html_content)
-            
-            # 🔥 2. FALLBACK: Agar text 200 characters se kam hai toh RSS description use karo
-            if len(text) < 200:
-                print(f"  ⚠️ Scraped content too short ({len(text)} chars). Using RSS description as fallback...")
-                # RSS description pehle se hi short summary hoti hai
-                fallback_text = article.get('description', '')
-                if fallback_text and len(fallback_text) > 50:
-                    text = fallback_text  # isko summarize karne bhej do (ya direct use karo)
-                else:
-                    # Agar description bhi na ho toh skip
-                    print(f"  ⚠️ No fallback text available, skipping...")
-                    continue
-            
-            # Agar text 200 chars se kam hai aur fallback bhi kaam nahi aaya, toh skip
-            if len(text) < 200:
-                print(f"  ⚠️ Final text too short ({len(text)} chars), skipping...")
+            # Description se text lo
+            text = article.get('description', '')
+            if not text or len(text) < 50:
+                print(f"  ⚠️ Description too short, skipping...")
                 continue
             
-            # 3. Summary generate karo
+            # Groq se summary banao
             summary = summarize_text(text)
-            if "failed" in summary.lower() or len(summary) < 10:
-                print(f"  ⚠️ Summary generation failed, skipping...")
+            if "failed" in summary.lower() or len(summary) < 5:
+                print(f"  ⚠️ Summary failed, skipping...")
                 continue
             
-            # 4. Supabase mein save karo
+            # Database mein save karo
             success = save_to_supabase(
                 title=article['title'],
                 summary=summary,
-                source_url=article['link'],
-                category=category,
-                published_at=article.get('date', '')
+                source_url=article['url'],
+                category=cat_name,
+                image_url=article['image_url'],
+                published_at=article.get('publishedAt', '')
             )
             
             if success:
                 total_inserted += 1
             
-            time.sleep(2)
+            # Rate limit avoid karne ke liye 1 second ka gap
+            time.sleep(1)
     
     print("-" * 50)
-    print(f"✅ Scraper Bot Finished! Inserted {total_inserted} new summaries.")
+    print(f"✅ Finished! Inserted {total_inserted} new summaries.")
+    print("💡 Tip: Check your Supabase 'summaries' table for image_url column!")
 
 if __name__ == "__main__":
     main()

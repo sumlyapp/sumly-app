@@ -1,14 +1,15 @@
+import os
 import requests
 from supabase import create_client, Client
 from groq import Groq
-import os
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 
 # ========================
-# 🔥 LOAD ENVIRONMENT VARIABLES
+# 🔥 LOAD ENVIRONMENT
 # ========================
+print("🔍 Current Directory:", os.getcwd())
 load_dotenv()
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -16,13 +17,15 @@ SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 NEWS_API_KEY = os.getenv("NEWS_API_KEY")
 
-# 🔥 Fallback for local testing
-if not SUPABASE_URL:
-    SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
-if not SUPABASE_KEY:
-    SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-if not GROQ_API_KEY:
-    GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+print(f"🔍 SUPABASE_URL: {SUPABASE_URL}")
+print(f"🔍 NEWS_API_KEY: {NEWS_API_KEY[:10] if NEWS_API_KEY else 'NOT FOUND'}...")
+
+# ========================
+# 🛑 VALIDATE ENV
+# ========================
+if not SUPABASE_URL or not SUPABASE_KEY or not GROQ_API_KEY or not NEWS_API_KEY:
+    print("❌ Missing environment variables! Check .env file.")
+    exit(1)
 
 # ========================
 # 🔥 INITIALIZE CLIENTS
@@ -53,7 +56,7 @@ def fetch_articles(category_config):
     params = {
         "apikey": NEWS_API_KEY,
         "language": "en",
-        "size": 20,
+        "size": 10,  # 🔥 FIXED: 20 se 10 kar diya (Free tier max 10)
     }
     
     if category_config["api_category"]:
@@ -65,12 +68,17 @@ def fetch_articles(category_config):
         response = requests.get(url, params=params, timeout=15)
         data = response.json()
         
+        print(f"🔍 Full API Response: {data}")
+        
+        # 🔥 FIXED: Error message results ke andar hai
         if data.get("status") != "success":
-            print(f"⚠️ API Error: {data.get('message', 'Unknown error')}")
+            error_msg = data.get('results', {}).get('message', 'Unknown error')
+            print(f"⚠️ API Error: {error_msg}")
             return []
         
+        results = data.get("results", [])
         articles = []
-        for item in data.get("results", []):
+        for item in results:
             articles.append({
                 "title": item.get("title", "No title"),
                 "description": item.get("description", ""),
@@ -80,7 +88,7 @@ def fetch_articles(category_config):
             })
         return articles
     except Exception as e:
-        print(f"❌ Error fetching: {e}")
+        print(f"❌ Fetch Exception: {e}")
         return []
 
 # ========================
@@ -103,7 +111,7 @@ def summarize_text(text):
                 4. Keep it mobile-friendly and crisp."""},
                 {"role": "user", "content": text[:4000]}
             ],
-            model="llama3-8b-8192",
+            model="llama-3.1-8b-instant",
             temperature=0.2,
         )
         return chat_completion.choices[0].message.content
@@ -127,7 +135,7 @@ def save_to_supabase(title, summary, source_url, category, image_url, published_
         "category": category,
         "image_url": image_url,
         "published_at": published_at,
-        "created_at": datetime.utcnow().isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat()
     }
     
     try:
@@ -143,7 +151,7 @@ def save_to_supabase(title, summary, source_url, category, image_url, published_
 # ========================
 def main():
     print("🚀 NewsData.io Scraper Started!")
-    print(f"📅 Time: {datetime.utcnow().isoformat()}")
+    print(f"📅 Time: {datetime.now(timezone.utc).isoformat()}")
     print("-" * 50)
     
     total_inserted = 0

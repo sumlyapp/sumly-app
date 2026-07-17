@@ -1,15 +1,15 @@
 name: Scraper Bot
 on:
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 1,7,13,19 * * *'   # 🔥 Pakistan time: 6AM, 12PM, 6PM, 12AM (UTC: 1AM, 7AM, 1PM, 7PM)
   workflow_dispatch:
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5   # v4 se v5 upgrade
-      - uses: actions/setup-python@v6   # v5 se v6 upgrade
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.10'
       - name: Install dependencies

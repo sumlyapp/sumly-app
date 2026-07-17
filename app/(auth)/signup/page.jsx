@@ -20,7 +20,7 @@ export default function SignupPage() {
       alert(error.message)
     } else {
       alert('✅ Check your email for confirmation!')
-      router.push('/interests')
+      router.push('/device-select')  // 🔥 Naya page
     }
   }
 
@@ -33,7 +33,6 @@ export default function SignupPage() {
         </div>
 
         <div className="space-y-4">
-          {/* Email */}
           <input 
             type="email" 
             placeholder="Email" 
@@ -42,7 +41,6 @@ export default function SignupPage() {
             className="w-full px-4 py-3 rounded-xl bg-white/20 border border-white/30 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50" 
           />
 
-          {/* Password with Show/Hide */}
           <div className="relative">
             <input 
               type={showPassword ? "text" : "password"} 
@@ -60,12 +58,10 @@ export default function SignupPage() {
             </button>
           </div>
 
-          {/* Sign Up Button */}
           <Button onClick={handleSignUp} className="w-full" disabled={loading}>
             {loading ? 'Loading...' : 'Sign Up'}
           </Button>
 
-          {/* Login Link */}
           <p className="text-center text-white/50 text-sm mt-4">
             Already have an account?{' '}
             <Link href="/login" className="text-white font-medium hover:underline">

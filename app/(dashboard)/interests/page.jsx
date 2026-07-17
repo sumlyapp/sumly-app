@@ -43,7 +43,7 @@ export default function InterestsPage() {
       if (error) {
         alert(error.message)
       } else {
-        router.push('/feed')
+        router.push('/feed') // ✅ Feed par bhejo
       }
     } else {
       setLoading(false)

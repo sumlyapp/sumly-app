@@ -19,7 +19,7 @@ export default function LoginPage() {
     if (error) {
       alert(error.message)
     } else {
-      router.push('/interests')
+      router.push('/device-select')  // 🔥 Naya page
     }
   }
 
@@ -32,7 +32,6 @@ export default function LoginPage() {
         </div>
 
         <div className="space-y-4">
-          {/* Email */}
           <input 
             type="email" 
             placeholder="Email" 
@@ -41,7 +40,6 @@ export default function LoginPage() {
             className="w-full px-4 py-3 rounded-xl bg-white/20 border border-white/30 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50" 
           />
 
-          {/* Password with Show/Hide */}
           <div className="relative">
             <input 
               type={showPassword ? "text" : "password"} 
@@ -59,19 +57,16 @@ export default function LoginPage() {
             </button>
           </div>
 
-          {/* Forgot Password Link */}
           <div className="text-right">
             <Link href="/forgot-password" className="text-sm text-white/50 hover:text-white transition">
               Forgot password?
             </Link>
           </div>
 
-          {/* Login Button */}
           <Button onClick={handleLogin} className="w-full" disabled={loading}>
             {loading ? 'Loading...' : 'Login'}
           </Button>
 
-          {/* Sign Up Link */}
           <p className="text-center text-white/50 text-sm mt-4">
             Don't have an account?{' '}
             <Link href="/signup" className="text-white font-medium hover:underline">

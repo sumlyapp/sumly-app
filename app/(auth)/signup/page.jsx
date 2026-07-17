@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef } from 'react'  // 🔥 useRef import karo
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../../lib/supabaseClient'
@@ -10,7 +10,7 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
-  const passwordRef = useRef(null)  // 🔥 Password field ka ref
+  const passwordRef = useRef(null)
 
   const handleSignUp = async (e) => {
     e.preventDefault()
@@ -21,18 +21,17 @@ export default function SignupPage() {
       alert(error.message)
     } else {
       alert('✅ Check your email for confirmation!')
-      router.push('/device-select')
+      router.push('/feed')  // 🔥 Device select hata diya
     }
   }
 
   const handleGoogleSignUp = async () => {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin + '/device-select' }
+      options: { redirectTo: window.location.origin + '/feed' }  // 🔥 Seedha feed
     })
   }
 
-  // 🔥 Email se Password par focus shift karne ka function
   const handleEmailKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault()
@@ -42,6 +41,8 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center font-sans antialiased relative overflow-hidden bg-[#0a0a0b]">
+      
+      {/* Background Beams */}
       <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1)_0%,transparent_40%)] pointer-events-none"></div>
       <div aria-hidden="true" className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-900/20 rounded-full blur-[120px] pointer-events-none"></div>
 
@@ -76,7 +77,9 @@ export default function SignupPage() {
             <p className="text-zinc-400 text-sm">Create your account to get started.</p>
           </header>
 
+          {/* Form */}
           <form onSubmit={handleSignUp} className="w-full space-y-4">
+            {/* Email */}
             <div>
               <input
                 type="email"
@@ -85,22 +88,23 @@ export default function SignupPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="w-full bg-[#2a2a2e]/50 border-none rounded-xl py-3.5 px-4 text-white placeholder-zinc-500 focus:ring-2 focus:ring-purple-500 transition-all outline-none"
-                onKeyDown={handleEmailKeyDown}  // 🔥 Enter dabane par password par focus
-                enterKeyHint="next"  // 🔥 Mobile keyboard par "Next" button
+                onKeyDown={handleEmailKeyDown}
+                enterKeyHint="next"
               />
             </div>
 
+            {/* Password */}
             <div className="space-y-2">
               <div className="relative">
                 <input
-                  ref={passwordRef}  // 🔥 Ref attach karo
+                  ref={passwordRef}
                   type={showPassword ? "text" : "password"}
                   placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   className="w-full bg-[#2a2a2e]/50 border-none rounded-xl py-3.5 px-4 text-white placeholder-zinc-500 focus:ring-2 focus:ring-purple-500 transition-all outline-none pr-12"
-                  enterKeyHint="go"  // 🔥 Mobile keyboard par "Go" ya "Done"
+                  enterKeyHint="go"
                 />
                 <button
                   type="button"
@@ -121,6 +125,7 @@ export default function SignupPage() {
               </div>
             </div>
 
+            {/* Sign Up Button */}
             <div className="pt-2">
               <button
                 type="submit"
@@ -132,6 +137,7 @@ export default function SignupPage() {
             </div>
           </form>
 
+          {/* OR + Google */}
           <div className="w-full mt-6">
             <div className="flex items-center gap-4 mb-6">
               <div className="h-[1px] flex-1 bg-zinc-800"></div>

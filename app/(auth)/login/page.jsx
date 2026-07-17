@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef } from 'react'  // 🔥 useRef import karo
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../../lib/supabaseClient'
@@ -10,7 +10,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
-  const passwordRef = useRef(null)  // 🔥 Password field ka ref
+  const passwordRef = useRef(null)
 
   const handleLogin = async (e) => {
     e.preventDefault()
@@ -20,18 +20,17 @@ export default function LoginPage() {
     if (error) {
       alert(error.message)
     } else {
-      router.push('/device-select')
+      router.push('/feed')  // 🔥 Device select hata diya
     }
   }
 
   const handleGoogleLogin = async () => {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin + '/device-select' }
+      options: { redirectTo: window.location.origin + '/feed' }  // 🔥 Seedha feed
     })
   }
 
-  // 🔥 Email se Password par focus shift karne ka function
   const handleEmailKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault()
@@ -41,6 +40,8 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center font-sans antialiased relative overflow-hidden bg-[#0a0a0b]">
+      
+      {/* Background Beams */}
       <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1)_0%,transparent_40%)] pointer-events-none"></div>
       <div aria-hidden="true" className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-900/20 rounded-full blur-[120px] pointer-events-none"></div>
 
@@ -55,6 +56,7 @@ export default function LoginPage() {
             boxShadow: 'rgba(139, 92, 246, 0.15) 0px 0px 80px, rgba(255, 255, 255, 0.1) 0px 0px 30px inset, rgba(255, 255, 255, 0.4) 0px 1px 0px inset, rgba(255, 255, 255, 0.1) 0px -1px 0px inset'
           }}
         >
+          {/* Header */}
           <header className="text-center mb-8">
             <div className="mb-4 flex justify-center">
               <svg className="text-white" fill="none" height="40" viewBox="0 0 40 40" width="40" xmlns="http://www.w3.org/2000/svg">
@@ -75,7 +77,9 @@ export default function LoginPage() {
             <p className="text-zinc-400 text-sm">Please enter your details to sign in.</p>
           </header>
 
+          {/* Form */}
           <form onSubmit={handleLogin} className="w-full space-y-4">
+            {/* Email */}
             <div>
               <input
                 type="email"
@@ -84,22 +88,23 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="w-full bg-[#2a2a2e]/50 border-none rounded-xl py-3.5 px-4 text-white placeholder-zinc-500 focus:ring-2 focus:ring-purple-500 transition-all outline-none"
-                onKeyDown={handleEmailKeyDown}  // 🔥 Enter dabane par password par focus
-                enterKeyHint="next"  // 🔥 Mobile keyboard par "Next" button
+                onKeyDown={handleEmailKeyDown}
+                enterKeyHint="next"
               />
             </div>
 
+            {/* Password */}
             <div className="space-y-2">
               <div className="relative">
                 <input
-                  ref={passwordRef}  // 🔥 Ref attach karo
+                  ref={passwordRef}
                   type={showPassword ? "text" : "password"}
                   placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   className="w-full bg-[#2a2a2e]/50 border-none rounded-xl py-3.5 px-4 text-white placeholder-zinc-500 focus:ring-2 focus:ring-purple-500 transition-all outline-none pr-12"
-                  enterKeyHint="go"  // 🔥 Mobile keyboard par "Go" ya "Done"
+                  enterKeyHint="go"
                 />
                 <button
                   type="button"
@@ -125,6 +130,7 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {/* Sign In Button */}
             <div className="pt-2">
               <button
                 type="submit"
@@ -136,6 +142,7 @@ export default function LoginPage() {
             </div>
           </form>
 
+          {/* OR + Google */}
           <div className="w-full mt-6">
             <div className="flex items-center gap-4 mb-6">
               <div className="h-[1px] flex-1 bg-zinc-800"></div>

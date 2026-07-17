@@ -52,11 +52,9 @@ export default function InterestsPage() {
   return (
     <div className="min-h-screen flex items-center justify-center font-sans antialiased relative overflow-hidden bg-[#0a0a0b]">
       
-      {/* Background Beams */}
       <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1)_0%,transparent_40%)] pointer-events-none"></div>
       <div aria-hidden="true" className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-900/20 rounded-full blur-[120px] pointer-events-none"></div>
 
-      {/* Main Card */}
       <main className="w-full max-w-[420px] px-6 z-10">
         <div 
           className="rounded-[40px] px-8 py-12 flex flex-col items-center"
@@ -68,9 +66,7 @@ export default function InterestsPage() {
             boxShadow: 'rgba(139, 92, 246, 0.15) 0px 0px 80px, rgba(255, 255, 255, 0.1) 0px 0px 30px inset, rgba(255, 255, 255, 0.4) 0px 1px 0px inset, rgba(255, 255, 255, 0.1) 0px -1px 0px inset'
           }}
         >
-          {/* Header */}
           <header className="text-center mb-8">
-            {/* Logo */}
             <div className="mb-4 flex justify-center">
               <svg className="text-white" fill="none" height="40" viewBox="0 0 40 40" width="40" xmlns="http://www.w3.org/2000/svg">
                 <path d="M20 4C20.5523 4 21 4.44772 21 5C21 5.55228 20.5523 6 20 6C19.4477 6 19 5.55228 19 5C19 4.44772 19.4477 4 20 4Z" fill="currentColor" />
@@ -90,7 +86,6 @@ export default function InterestsPage() {
             <p className="text-zinc-400 text-sm">Pick at least 3 topics you love.</p>
           </header>
 
-          {/* Categories Grid */}
           <div className="w-full space-y-4">
             <div className="flex flex-wrap gap-2 justify-center">
               {categories.map((cat) => (
@@ -108,7 +103,6 @@ export default function InterestsPage() {
               ))}
             </div>
 
-            {/* Continue Button */}
             <div className="pt-4">
               <button
                 onClick={handleContinue}

@@ -92,43 +92,42 @@ export default function FeedPage() {
   }
 
   return (
-    // 🔥 Black Background with Purple Glow
     <div className="min-h-screen bg-[#0a0a0b] overflow-y-scroll relative">
       
-      {/* Background Beams */}
+      {/* Background Glow */}
       <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1)_0%,transparent_40%)] pointer-events-none"></div>
       <div aria-hidden="true" className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-900/20 rounded-full blur-[120px] pointer-events-none"></div>
 
-      {/* 🔥 Sticky Header - Glassmorphism */}
+      {/* 🔥 HEADER WITH CATEGORIES */}
       <div className="sticky top-0 z-20 bg-[#0a0a0b]/80 backdrop-blur-xl border-b border-white/10">
         <div className="flex justify-between items-center px-4 py-3">
           <div className="flex gap-3 overflow-x-auto pb-1 flex-1 hide-scrollbar">
-            {allCategories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-300 ${
-                  selectedCategory === cat
-                    ? 'bg-white text-[#0a0a0b] shadow-lg shadow-purple-900/20'
-                    : 'bg-[#2a2a2e]/50 text-zinc-300 hover:bg-[#2a2a2e] border border-zinc-800'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
+            {allCategories.length > 0 ? (
+              allCategories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-300 ${
+                    selectedCategory === cat
+                      ? 'bg-white text-[#0a0a0b] shadow-lg shadow-purple-900/20'
+                      : 'bg-[#2a2a2e]/50 text-zinc-300 hover:bg-[#2a2a2e] border border-zinc-800'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))
+            ) : (
+              <span className="text-zinc-500 text-sm px-2">No interests selected</span>
+            )}
           </div>
           <div className="flex items-center gap-3 ml-3 flex-shrink-0">
-            <button onClick={() => router.push('/saved')} className="text-sm text-zinc-400 hover:text-white transition">
-              🔖 Saved
-            </button>
-            <button onClick={handleLogout} className="text-sm text-zinc-400 hover:text-white transition">
-              Logout
-            </button>
+            <button onClick={() => router.push('/saved')} className="text-sm text-zinc-400 hover:text-white transition">🔖 Saved</button>
+            <button onClick={handleLogout} className="text-sm text-zinc-400 hover:text-white transition">Logout</button>
           </div>
         </div>
       </div>
 
-      {/* 🔥 Cards - Responsive (Center hamesha) */}
+      {/* Feed Cards */}
       <div className="max-w-2xl mx-auto px-4 py-4 relative z-10 space-y-4">
         {filteredSummaries.length === 0 ? (
           <div className="bg-white/5 backdrop-blur-xl rounded-2xl p-8 text-center border border-white/10 shadow-[0_0_40px_rgba(139,92,246,0.15)]">
@@ -141,7 +140,6 @@ export default function FeedPage() {
               className="bg-white/5 backdrop-blur-xl rounded-2xl shadow-[0_0_40px_rgba(139,92,246,0.15)] border border-white/10 overflow-hidden flex flex-col animate-slide-up"
               style={{ animationDelay: `${index * 0.1}s`, opacity: 0 }}
             >
-              {/* Image */}
               {item.image_url && (
                 <div className="w-full h-56 lg:h-72 bg-gray-800 flex-shrink-0 overflow-hidden">
                   <img 
@@ -155,40 +153,36 @@ export default function FeedPage() {
                 </div>
               )}
 
-              {/* Content */}
               <div className="p-6 flex flex-col flex-grow">
-                <span className="text-xs font-bold text-purple-400 uppercase tracking-wider">
-                  {item.category}
-                </span>
-                <h3 className="text-xl lg:text-2xl font-bold mt-1 text-white leading-snug">
-                  {item.title}
-                </h3>
-                <p className="text-sm lg:text-base text-zinc-300 mt-2 leading-relaxed flex-grow">
-                  {item.summary}
-                </p>
+                <span className="text-xs font-bold text-purple-400 uppercase tracking-wider">{item.category}</span>
+                <h3 className="text-xl lg:text-2xl font-bold mt-1 text-white leading-snug">{item.title}</h3>
+                <p className="text-sm lg:text-base text-zinc-300 mt-2 leading-relaxed flex-grow">{item.summary}</p>
                 
                 <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-3 flex-shrink-0">
-                  <a 
-                    href={item.source_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-sm font-medium text-zinc-400 hover:text-white transition truncate max-w-[40%]"
-                  >
+                  <a href={item.source_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-zinc-400 hover:text-white transition truncate max-w-[40%]">
                     {item.source_name || 'Unknown Source'}
                   </a>
                   
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    {/* Save Button */}
+                    {/* 🔥 SAVE BUTTON - FIXED HOVER */}
                     <button
                       onClick={() => handleSave(item.id)}
-                      className={`w-8 h-8 rounded-full backdrop-blur-md transition-all duration-300 flex items-center justify-center ${
+                      className={`w-8 h-8 rounded-full backdrop-blur-md transition-all duration-300 flex items-center justify-center border ${
                         savedIds.includes(item.id) 
-                          ? 'bg-white/20 text-yellow-400 shadow-[0_0_20px_rgba(250,204,21,0.3)]' 
-                          : 'bg-white/5 text-zinc-400 hover:bg-white/20 hover:text-yellow-400 hover:shadow-[0_0_20px_rgba(250,204,21,0.2)] border border-white/10'
+                          ? 'bg-white/20 border-white/30 text-yellow-400 shadow-[0_0_20px_rgba(250,204,21,0.3)]' 
+                          : 'bg-white/5 border-white/10 text-zinc-400 hover:bg-white/20 hover:text-yellow-400 hover:shadow-[0_0_20px_rgba(250,204,21,0.2)]'
                       }`}
                       aria-label="Save article"
                     >
-                      <span className="text-sm">{savedIds.includes(item.id) ? '⭐' : '☆'}</span>
+                      {savedIds.includes(item.id) ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                          <path fillRule="evenodd" d="M6.32 2.577a49.255 49.255 0 0 1 11.36 0c1.497.174 2.57 1.46 2.57 2.93V21a.75.75 0 0 1-1.085.67L12 18.089l-7.165 3.583A.75.75 0 0 1 3.75 21V5.507c0-1.47 1.073-2.756 2.57-2.93Z" clipRule="evenodd" />
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
+                        </svg>
+                      )}
                     </button>
 
                     {/* Share Button */}
@@ -202,6 +196,7 @@ export default function FeedPage() {
                       </svg>
                     </button>
 
+                    {/* Read Button */}
                     <a 
                       href={item.source_url} 
                       target="_blank" 

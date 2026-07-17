@@ -13,3 +13,11 @@
 .animate-slide-up {
   animation: slideUp 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
+/* Hide scrollbar for category filter */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

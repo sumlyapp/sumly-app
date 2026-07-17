@@ -9,20 +9,42 @@ export default function FeedPage() {
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [allCategories, setAllCategories] = useState([])
   const [device, setDevice] = useState('mobile')
+  const [savedIds, setSavedIds] = useState([]) // 🔥 STATE UPAR
   const router = useRouter()
 
+  // 🔥 SAVE FUNCTION
+  const handleSave = async (summaryId) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { router.push('/login'); return }
+    
+    if (savedIds.includes(summaryId)) {
+      await supabase.from('saved_news').delete().eq('user_id', user.id).eq('summary_id', summaryId)
+      setSavedIds(savedIds.filter(id => id !== summaryId))
+    } else {
+      await supabase.from('saved_news').insert({ user_id: user.id, summary_id: summaryId })
+      setSavedIds([...savedIds, summaryId])
+    }
+  }
+
   useEffect(() => {
-    // 🔥 Device preference lo
     const savedDevice = localStorage.getItem('device_preference') || 'mobile'
     setDevice(savedDevice)
 
-    const fetchFeed = async () => {
+    const fetchData = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         router.push('/login')
         return
       }
 
+      // Fetch saved IDs
+      const { data: savedData } = await supabase
+        .from('saved_news')
+        .select('summary_id')
+        .eq('user_id', user.id)
+      setSavedIds(savedData?.map(d => d.summary_id) || [])
+
+      // Fetch interests
       const { data: interests } = await supabase
         .from('user_interests')
         .select('category')
@@ -31,6 +53,7 @@ export default function FeedPage() {
       const categories = interests?.map(i => i.category) || []
       setAllCategories(['All', ...categories])
 
+      // Fetch summaries
       let query = supabase.from('summaries').select('*')
       if (categories.length > 0) {
         query = query.in('category', categories)
@@ -45,7 +68,7 @@ export default function FeedPage() {
       setLoading(false)
     }
 
-    fetchFeed()
+    fetchData()
   }, [])
 
   const filteredSummaries = selectedCategory === 'All' 
@@ -76,23 +99,17 @@ export default function FeedPage() {
     )
   }
 
-  // 🔥 Desktop vs Mobile Card Classes
   const isDesktop = device === 'desktop'
   
-  // 🔥 Card container classes
   const containerClasses = isDesktop 
-    ? 'h-screen snap-start flex items-center justify-center px-4'  // Desktop: center with padding
-    : 'h-screen snap-start flex items-center justify-center px-0'   // Mobile: full width
+    ? 'h-screen snap-start flex items-center justify-center px-4'
+    : 'h-screen snap-start flex items-center justify-center px-0'
 
-  // 🔥 Card classes
   const cardClasses = isDesktop
-    ? 'bg-white rounded-xl shadow-xl overflow-hidden flex flex-col w-full max-w-2xl max-h-[85vh] animate-slide-up'  // Desktop: max width 2xl
-    : 'bg-white rounded-xl shadow-xl overflow-hidden flex flex-col w-full h-[calc(100vh-80px)] mx-2 animate-slide-up'   // Mobile: full width
+    ? 'bg-white rounded-xl shadow-xl overflow-hidden flex flex-col w-full max-w-2xl max-h-[85vh] animate-slide-up'
+    : 'bg-white rounded-xl shadow-xl overflow-hidden flex flex-col w-full h-[calc(100vh-80px)] mx-2 animate-slide-up'
 
-  // 🔥 Image height
   const imageHeight = isDesktop ? 'h-64' : 'h-[60%]'
-  
-  // 🔥 Content max height
   const contentMaxHeight = isDesktop ? 'max-h-[calc(85vh-18rem)]' : 'max-h-[40%]'
 
   return (
@@ -116,9 +133,14 @@ export default function FeedPage() {
               </button>
             ))}
           </div>
-          <button onClick={handleLogout} className="text-sm text-white/60 hover:text-white transition ml-3 flex-shrink-0">
-            Logout
-          </button>
+          <div className="flex items-center gap-3">
+            <button onClick={() => router.push('/saved')} className="text-sm text-white/60 hover:text-white transition">
+              🔖 Saved
+            </button>
+            <button onClick={handleLogout} className="text-sm text-white/60 hover:text-white transition">
+              Logout
+            </button>
+          </div>
         </div>
       </div>
 
@@ -166,18 +188,27 @@ export default function FeedPage() {
                     href={item.source_url} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-sm font-medium text-blue-600 hover:underline transition truncate max-w-[60%]"
+                    className="text-sm font-medium text-blue-600 hover:underline transition truncate max-w-[50%]"
                   >
                     {item.source_name || 'Unknown Source'}
                   </a>
                   
-                  <div className="flex items-center gap-3 flex-shrink-0">
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {/* 🔥 SAVE BUTTON */}
+                    <button
+                      onClick={() => handleSave(item.id)}
+                      className={`text-lg transition ${savedIds.includes(item.id) ? 'text-yellow-400' : 'text-gray-400 hover:text-yellow-400'}`}
+                      aria-label="Save article"
+                    >
+                      {savedIds.includes(item.id) ? '⭐' : '☆'}
+                    </button>
+
                     <button
                       onClick={() => handleShare(item.title, item.summary, item.source_url)}
                       className="text-gray-400 hover:text-blue-600 transition p-1 rounded-full hover:bg-blue-50"
                       aria-label="Share"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.935-2.186 2.25 2.25 0 0 0-3.935 2.186Z" />
                       </svg>
                     </button>

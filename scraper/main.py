@@ -1,7 +1,7 @@
-import os
 import requests
 from supabase import create_client, Client
 from groq import Groq
+import os
 import time
 from datetime import datetime, timezone
 from dotenv import load_dotenv
@@ -43,7 +43,7 @@ def fetch_articles(category_config):
     params = {
         "apikey": NEWS_API_KEY,
         "language": "en",
-        "size": 10,  # 10 articles per call
+        "size": 10,
     }
     
     if category_config["api_category"]:
@@ -62,13 +62,17 @@ def fetch_articles(category_config):
         results = data.get("results", [])
         articles = []
         for item in results:
+            if item.get("duplicate") == True:
+                print(f"  ⚠️ Duplicate skipped: {item.get('title', '')[:40]}...")
+                continue
+                
             articles.append({
                 "title": item.get("title", "No title"),
                 "description": item.get("description", ""),
                 "url": item.get("link", ""),
                 "image_url": item.get("image_url", ""),
                 "publishedAt": item.get("pubDate", ""),
-                "source_name": item.get("source_name", item.get("source_id", "Unknown Source"))  # 🔥 SOURCE NAME
+                "source_name": item.get("source_name", item.get("source_id", "Unknown Source"))
             })
         return articles
     except Exception as e:
@@ -76,7 +80,7 @@ def fetch_articles(category_config):
         return []
 
 # ========================
-# 🤖 GROQ SUMMARIZER
+# 🤖 GROQ SUMMARIZER (UPDATED LENGTH)
 # ========================
 def summarize_text(text):
     if not text or len(text) < 20:
@@ -86,7 +90,7 @@ def summarize_text(text):
         chat_completion = groq_client.chat.completions.create(
             messages=[
                 {"role": "system", "content": """You are a strict summarizer. 
-                Summarize the following article in exactly 2 short sentences (max 40 words). 
+                Summarize the following article in exactly 3 concise sentences (max 70 words). 
                 RULES: 
                 1. If the original text contains exact numbers (e.g., '45%', '2 million'), retain them exactly.
                 2. Do NOT invent, guess, or approximate any numbers.
@@ -106,12 +110,8 @@ def summarize_text(text):
 # 💾 SAVE TO SUPABASE
 # ========================
 def save_to_supabase(title, summary, source_url, category, image_url, source_name, published_at=""):
-    """Summary ko Supabase mein save karo"""
-    
-    # 🔥 IMAGE FALLBACK: Agar image nahi hai toh local placeholder
     if not image_url or len(image_url) < 10:
-        # Better placeholder (SVG data URI)
-        image_url = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='200' viewBox='0 0 400 200'%3E%3Crect width='400' height='200' fill='%23e2e8f0'/%3E%3Ctext x='200' y='110' font-family='sans-serif' font-size='20' fill='%2364748b' text-anchor='middle'%3ENo Image%3C/text%3E%3C/svg%3E"
+        image_url = "https://placehold.co/400x200/1e293b/94a3b8?text=No+Image"
     
     data = {
         "title": title[:255],
@@ -119,7 +119,7 @@ def save_to_supabase(title, summary, source_url, category, image_url, source_nam
         "source_url": source_url,
         "category": category,
         "image_url": image_url,
-        "source_name": source_name,  # 🔥 SOURCE NAME
+        "source_name": source_name,
         "published_at": published_at,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
@@ -129,7 +129,10 @@ def save_to_supabase(title, summary, source_url, category, image_url, source_nam
         print(f"✅ Inserted: {title[:50]}...")
         return True
     except Exception as e:
-        print(f"❌ DB Insert Error: {e}")
+        if "duplicate key" in str(e).lower() or "unique constraint" in str(e).lower():
+            print(f"  ⏭️ Already exists (duplicate skipped): {title[:40]}...")
+        else:
+            print(f"❌ DB Error: {e}")
         return False
 
 # ========================
@@ -148,7 +151,7 @@ def main():
         
         articles = fetch_articles(cat)
         if not articles:
-            print(f"⚠️ No articles found for {cat_name}")
+            print(f"⚠️ No new articles found for {cat_name}")
             continue
         
         for idx, article in enumerate(articles):
@@ -170,7 +173,7 @@ def main():
                 source_url=article['url'],
                 category=cat_name,
                 image_url=article['image_url'],
-                source_name=article['source_name'],  # 🔥 PASS SOURCE NAME
+                source_name=article['source_name'],
                 published_at=article.get('publishedAt', '')
             )
             

@@ -20,7 +20,7 @@ export default function SignupPage() {
       alert(error.message)
     } else {
       alert('✅ Check your email for confirmation!')
-      router.push('/device-select')  // 🔥 Naya page
+      router.push('/device-select')
     }
   }
 
@@ -66,6 +66,14 @@ export default function SignupPage() {
             Already have an account?{' '}
             <Link href="/login" className="text-white font-medium hover:underline">
               Login
+            </Link>
+          </p>
+
+          {/* 🔥 Privacy Policy Link - ANDAR DAALO */}
+          <p className="text-center text-white/40 text-xs mt-6">
+            By continuing, you agree to our{' '}
+            <Link href="/privacy-policy" className="text-white/60 hover:text-white underline transition">
+              Privacy Policy
             </Link>
           </p>
         </div>

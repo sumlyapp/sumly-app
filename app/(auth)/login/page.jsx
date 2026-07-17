@@ -20,14 +20,14 @@ export default function LoginPage() {
     if (error) {
       alert(error.message)
     } else {
-      router.push('/feed')  // 🔥 Device select hata diya
+      router.push('/interests') // 🔥 FIX: Interests par bhejo
     }
   }
 
   const handleGoogleLogin = async () => {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin + '/feed' }  // 🔥 Seedha feed
+      options: { redirectTo: window.location.origin + '/interests' }
     })
   }
 
@@ -40,8 +40,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center font-sans antialiased relative overflow-hidden bg-[#0a0a0b]">
-      
-      {/* Background Beams */}
       <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1)_0%,transparent_40%)] pointer-events-none"></div>
       <div aria-hidden="true" className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-900/20 rounded-full blur-[120px] pointer-events-none"></div>
 
@@ -56,7 +54,6 @@ export default function LoginPage() {
             boxShadow: 'rgba(139, 92, 246, 0.15) 0px 0px 80px, rgba(255, 255, 255, 0.1) 0px 0px 30px inset, rgba(255, 255, 255, 0.4) 0px 1px 0px inset, rgba(255, 255, 255, 0.1) 0px -1px 0px inset'
           }}
         >
-          {/* Header */}
           <header className="text-center mb-8">
             <div className="mb-4 flex justify-center">
               <svg className="text-white" fill="none" height="40" viewBox="0 0 40 40" width="40" xmlns="http://www.w3.org/2000/svg">
@@ -77,9 +74,7 @@ export default function LoginPage() {
             <p className="text-zinc-400 text-sm">Please enter your details to sign in.</p>
           </header>
 
-          {/* Form */}
           <form onSubmit={handleLogin} className="w-full space-y-4">
-            {/* Email */}
             <div>
               <input
                 type="email"
@@ -93,7 +88,6 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* Password */}
             <div className="space-y-2">
               <div className="relative">
                 <input
@@ -124,25 +118,17 @@ export default function LoginPage() {
                 </button>
               </div>
               <div className="text-right">
-                <Link href="/forgot-password" className="text-zinc-400 text-xs hover:text-white transition-colors">
-                  Forgot Password?
-                </Link>
+                <Link href="/forgot-password" className="text-zinc-400 text-xs hover:text-white transition-colors">Forgot Password?</Link>
               </div>
             </div>
 
-            {/* Sign In Button */}
             <div className="pt-2">
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-white text-[#0a0a0b] hover:bg-zinc-200 font-semibold py-3.5 rounded-full transition-all duration-300 shadow-lg shadow-purple-900/20 disabled:opacity-50"
-              >
+              <button type="submit" disabled={loading} className="w-full bg-white text-[#0a0a0b] hover:bg-zinc-200 font-semibold py-3.5 rounded-full transition-all duration-300 shadow-lg shadow-purple-900/20 disabled:opacity-50">
                 {loading ? 'Loading...' : 'Sign in'}
               </button>
             </div>
           </form>
 
-          {/* OR + Google */}
           <div className="w-full mt-6">
             <div className="flex items-center gap-4 mb-6">
               <div className="h-[1px] flex-1 bg-zinc-800"></div>
@@ -150,10 +136,7 @@ export default function LoginPage() {
               <div className="h-[1px] flex-1 bg-zinc-800"></div>
             </div>
 
-            <button
-              onClick={handleGoogleLogin}
-              className="w-full bg-[#2a2a2e]/50 border border-zinc-800 hover:bg-[#2a2a2e] transition-colors py-3 rounded-xl flex items-center justify-center gap-3"
-            >
+            <button onClick={handleGoogleLogin} className="w-full bg-[#2a2a2e]/50 border border-zinc-800 hover:bg-[#2a2a2e] transition-colors py-3 rounded-xl flex items-center justify-center gap-3">
               <svg height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
@@ -164,10 +147,7 @@ export default function LoginPage() {
             </button>
 
             <p className="text-center mt-8 text-sm text-zinc-500">
-              Don't have an account?{' '}
-              <Link href="/signup" className="text-white hover:underline transition-all">
-                Sign up
-              </Link>
+              Don't have an account? <Link href="/signup" className="text-white hover:underline transition-all">Sign up</Link>
             </p>
           </div>
         </div>

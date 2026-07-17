@@ -9,13 +9,11 @@ export default function SavedPage() {
   const [savedIds, setSavedIds] = useState([])
   const router = useRouter()
 
-  // 🔥 Unsave Function
   const handleUnsave = async (summaryId) => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
     
     await supabase.from('saved_news').delete().eq('user_id', user.id).eq('summary_id', summaryId)
-    // Remove from local state
     setSaved(saved.filter(item => item.id !== summaryId))
     setSavedIds(savedIds.filter(id => id !== summaryId))
   }
@@ -28,14 +26,12 @@ export default function SavedPage() {
         return
       }
 
-      // Fetch saved IDs
       const { data: savedData } = await supabase
         .from('saved_news')
         .select('summary_id')
         .eq('user_id', user.id)
       setSavedIds(savedData?.map(d => d.summary_id) || [])
 
-      // Fetch full summaries
       const { data, error } = await supabase
         .from('summaries')
         .select('*')
@@ -84,15 +80,24 @@ export default function SavedPage() {
       <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1)_0%,transparent_40%)] pointer-events-none"></div>
       <div aria-hidden="true" className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-900/20 rounded-full blur-[120px] pointer-events-none"></div>
 
-      {/* Header */}
+      {/* 🔥 HEADER - Liquid Glass Buttons */}
       <div className="sticky top-0 z-20 bg-[#0a0a0b]/80 backdrop-blur-xl border-b border-white/10">
         <div className="flex justify-between items-center px-4 py-3">
-          <h1 className="text-white text-lg font-bold">🔖 Saved Articles</h1>
+          <h1 className="text-white text-lg font-bold">Saved Articles</h1>
           <div className="flex items-center gap-3">
-            <button onClick={() => router.push('/feed')} className="text-sm text-zinc-400 hover:text-white transition">
+            {/* 🔥 FEED BUTTON - LIQUID GLASS */}
+            <button 
+              onClick={() => router.push('/feed')} 
+              className="px-3 py-1.5 rounded-full bg-white/5 backdrop-blur-md border border-white/10 text-sm text-zinc-400 hover:text-white hover:bg-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all duration-300"
+            >
               Feed
             </button>
-            <button onClick={handleLogout} className="text-sm text-zinc-400 hover:text-white transition">
+            
+            {/* 🔥 LOGOUT BUTTON - LIQUID GLASS */}
+            <button 
+              onClick={handleLogout} 
+              className="px-3 py-1.5 rounded-full bg-white/5 backdrop-blur-md border border-white/10 text-sm text-zinc-400 hover:text-white hover:bg-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all duration-300"
+            >
               Logout
             </button>
           </div>
@@ -139,10 +144,10 @@ export default function SavedPage() {
                   </a>
                   
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    {/* 🔥 UNSAVE BUTTON - Bookmark FILLED with Unsave */}
+                    {/* 🔥 UNSAVE BUTTON - NO YELLOW, PURE WHITE GLASS */}
                     <button
                       onClick={() => handleUnsave(item.id)}
-                      className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-yellow-400 shadow-[0_0_20px_rgba(250,204,21,0.3)] hover:bg-white/30 hover:scale-105 transition-all duration-300 flex items-center justify-center"
+                      className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/25 hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:scale-105 transition-all duration-300 flex items-center justify-center"
                       aria-label="Unsave article"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">

@@ -11,6 +11,7 @@ export default function FeedPage() {
   const [savedIds, setSavedIds] = useState([])
   const router = useRouter()
 
+  // 🔥 Save / Unsave Function
   const handleSave = async (summaryId) => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
@@ -32,12 +33,14 @@ export default function FeedPage() {
         return
       }
 
+      // Fetch saved IDs
       const { data: savedData } = await supabase
         .from('saved_news')
         .select('summary_id')
         .eq('user_id', user.id)
       setSavedIds(savedData?.map(d => d.summary_id) || [])
 
+      // Fetch interests
       const { data: interests } = await supabase
         .from('user_interests')
         .select('category')
@@ -46,6 +49,7 @@ export default function FeedPage() {
       const categories = interests?.map(i => i.category) || []
       setAllCategories(['All', ...categories])
 
+      // Fetch summaries
       let query = supabase.from('summaries').select('*')
       if (categories.length > 0) {
         query = query.in('category', categories)
@@ -98,9 +102,10 @@ export default function FeedPage() {
       <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1)_0%,transparent_40%)] pointer-events-none"></div>
       <div aria-hidden="true" className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-900/20 rounded-full blur-[120px] pointer-events-none"></div>
 
-      {/* 🔥 HEADER WITH CATEGORIES */}
+      {/* 🔥 HEADER - Categories + Liquid Glass Buttons */}
       <div className="sticky top-0 z-20 bg-[#0a0a0b]/80 backdrop-blur-xl border-b border-white/10">
         <div className="flex justify-between items-center px-4 py-3">
+          {/* Categories Scroll */}
           <div className="flex gap-3 overflow-x-auto pb-1 flex-1 hide-scrollbar">
             {allCategories.length > 0 ? (
               allCategories.map((cat) => (
@@ -120,9 +125,21 @@ export default function FeedPage() {
               <span className="text-zinc-500 text-sm px-2">No interests selected</span>
             )}
           </div>
+
+          {/* 🔥 RIGHT SIDE - LIQUID GLASS BUTTONS */}
           <div className="flex items-center gap-3 ml-3 flex-shrink-0">
-            <button onClick={() => router.push('/saved')} className="text-sm text-zinc-400 hover:text-white transition">🔖 Saved</button>
-            <button onClick={handleLogout} className="text-sm text-zinc-400 hover:text-white transition">Logout</button>
+            <button 
+              onClick={() => router.push('/saved')} 
+              className="px-3 py-1.5 rounded-full bg-white/5 backdrop-blur-md border border-white/10 text-sm text-zinc-400 hover:text-white hover:bg-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all duration-300"
+            >
+              🔖 Saved
+            </button>
+            <button 
+              onClick={handleLogout} 
+              className="px-3 py-1.5 rounded-full bg-white/5 backdrop-blur-md border border-white/10 text-sm text-zinc-400 hover:text-white hover:bg-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all duration-300"
+            >
+              Logout
+            </button>
           </div>
         </div>
       </div>
@@ -140,6 +157,7 @@ export default function FeedPage() {
               className="bg-white/5 backdrop-blur-xl rounded-2xl shadow-[0_0_40px_rgba(139,92,246,0.15)] border border-white/10 overflow-hidden flex flex-col animate-slide-up"
               style={{ animationDelay: `${index * 0.1}s`, opacity: 0 }}
             >
+              {/* Image */}
               {item.image_url && (
                 <div className="w-full h-56 lg:h-72 bg-gray-800 flex-shrink-0 overflow-hidden">
                   <img 
@@ -153,6 +171,7 @@ export default function FeedPage() {
                 </div>
               )}
 
+              {/* Content */}
               <div className="p-6 flex flex-col flex-grow">
                 <span className="text-xs font-bold text-purple-400 uppercase tracking-wider">{item.category}</span>
                 <h3 className="text-xl lg:text-2xl font-bold mt-1 text-white leading-snug">{item.title}</h3>
@@ -164,13 +183,13 @@ export default function FeedPage() {
                   </a>
                   
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    {/* 🔥 SAVE BUTTON - FIXED HOVER */}
+                    {/* 🔥 SAVE BUTTON - BOOKMARK ICON, WHITE GLASS STYLE */}
                     <button
                       onClick={() => handleSave(item.id)}
                       className={`w-8 h-8 rounded-full backdrop-blur-md transition-all duration-300 flex items-center justify-center border ${
                         savedIds.includes(item.id) 
-                          ? 'bg-white/20 border-white/30 text-yellow-400 shadow-[0_0_20px_rgba(250,204,21,0.3)]' 
-                          : 'bg-white/5 border-white/10 text-zinc-400 hover:bg-white/20 hover:text-yellow-400 hover:shadow-[0_0_20px_rgba(250,204,21,0.2)]'
+                          ? 'bg-white/20 border-white/30 text-white shadow-[0_0_20px_rgba(255,255,255,0.2)]' 
+                          : 'bg-white/5 border-white/10 text-zinc-400 hover:bg-white/20 hover:text-white hover:shadow-[0_0_20px_rgba(255,255,255,0.15)]'
                       }`}
                       aria-label="Save article"
                     >

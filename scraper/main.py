@@ -80,11 +80,27 @@ def fetch_articles(category_config):
         return []
 
 # ========================
-# 🤖 GROQ SUMMARIZER (UPDATED LENGTH)
+# 🤖 GROQ SUMMARIZER (UPDATED)
 # ========================
 def summarize_text(text):
     if not text or len(text) < 20:
-        return "No content to summarize."
+        return None
+    
+    # 🔥 Skip placeholder content
+    placeholder_phrases = [
+        "no article provided",
+        "no content",
+        "article not found",
+        "please share the article",
+        "no text available",
+        "there is no article"
+    ]
+    
+    text_lower = text.lower()
+    for phrase in placeholder_phrases:
+        if phrase in text_lower:
+            print(f"  ⚠️ Placeholder content detected: '{text[:50]}...'")
+            return None
     
     try:
         chat_completion = groq_client.chat.completions.create(
@@ -104,12 +120,16 @@ def summarize_text(text):
         return chat_completion.choices[0].message.content
     except Exception as e:
         print(f"❌ Groq Error: {e}")
-        return "Summary failed."
+        return None
 
 # ========================
 # 💾 SAVE TO SUPABASE
 # ========================
 def save_to_supabase(title, summary, source_url, category, image_url, source_name, published_at=""):
+    if not summary:
+        print(f"  ⏭️ Skipped: No summary for {title[:40]}...")
+        return False
+    
     if not image_url or len(image_url) < 10:
         image_url = "https://placehold.co/400x200/1e293b/94a3b8?text=No+Image"
     
@@ -130,7 +150,7 @@ def save_to_supabase(title, summary, source_url, category, image_url, source_nam
         return True
     except Exception as e:
         if "duplicate key" in str(e).lower() or "unique constraint" in str(e).lower():
-            print(f"  ⏭️ Already exists (duplicate skipped): {title[:40]}...")
+            print(f"  ⏭️ Already exists: {title[:40]}...")
         else:
             print(f"❌ DB Error: {e}")
         return False
@@ -163,8 +183,8 @@ def main():
                 continue
             
             summary = summarize_text(text)
-            if "failed" in summary.lower() or len(summary) < 5:
-                print(f"  ⚠️ Summary failed, skipping...")
+            if not summary or len(summary) < 5:
+                print(f"  ⚠️ Summary failed or invalid, skipping...")
                 continue
             
             success = save_to_supabase(

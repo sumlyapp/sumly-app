@@ -1,5 +1,6 @@
 @import "tailwindcss";
-/* 🔥 Smooth Sliding Animation for Feed Cards */
+
+/* 🔥 Smooth Sliding Animation for Feed & Saved Cards */
 @keyframes slideUp {
   0% {
     opacity: 0;

@@ -21,7 +21,7 @@ export default function SignupPage() {
       alert(error.message)
     } else {
       alert('✅ Check your email for confirmation!')
-      router.push('/feed')  // 🔥 Device select hata diya
+      router.push('/interests')  // 🔥 Device select hata diya
     }
   }
 

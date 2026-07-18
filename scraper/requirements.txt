@@ -2,3 +2,4 @@ requests
 supabase
 groq
 python-dotenv
+praw  # 🔥 Add this for Reddit API

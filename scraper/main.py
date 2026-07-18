@@ -3,8 +3,19 @@ from supabase import create_client, Client
 from groq import Groq
 import os
 import time
-from datetime import datetime, timezone
+import sys
+from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
+import smtplib
+from email.mime.text import MIMEText
+
+# 🔥 Reddit PRAW (if installed, else fallback to search)
+try:
+    import praw
+    PRAW_AVAILABLE = True
+except ImportError:
+    PRAW_AVAILABLE = False
+    print("⚠️ PRAW not installed. Reddit will use NewsData.io fallback.")
 
 # ========================
 # 🔥 LOAD ENVIRONMENT
@@ -14,7 +25,18 @@ load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-NEWS_API_KEY = os.getenv("NEWS_API_KEY")
+
+# Reddit API Keys (Optional)
+REDDIT_CLIENT_ID = os.getenv("REDDIT_CLIENT_ID")
+REDDIT_CLIENT_SECRET = os.getenv("REDDIT_CLIENT_SECRET")
+REDDIT_USER_AGENT = os.getenv("REDDIT_USER_AGENT", "SumlyScraper/1.0")
+
+# 🔥 Multiple API Keys
+NEWS_API_KEYS = [
+    os.getenv("NEWS_API_KEY_1"),
+    os.getenv("NEWS_API_KEY_2"),
+]
+NEWS_API_KEYS = [key for key in NEWS_API_KEYS if key]
 
 # ========================
 # 🔥 INITIALIZE CLIENTS
@@ -22,8 +44,22 @@ NEWS_API_KEY = os.getenv("NEWS_API_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 groq_client = Groq(api_key=GROQ_API_KEY)
 
+# Initialize Reddit client if available
+reddit_client = None
+if PRAW_AVAILABLE and REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET:
+    try:
+        reddit_client = praw.Reddit(
+            client_id=REDDIT_CLIENT_ID,
+            client_secret=REDDIT_CLIENT_SECRET,
+            user_agent=REDDIT_USER_AGENT
+        )
+        print("✅ Reddit API client initialized!")
+    except Exception as e:
+        print(f"⚠️ Reddit init failed: {e}")
+        reddit_client = None
+
 # ========================
-# 📌 CONFIGURATION
+# 📌 CONFIGURATION (UPDATED)
 # ========================
 CATEGORIES = [
     {"name": "Tech", "api_category": "technology"},
@@ -32,16 +68,126 @@ CATEGORIES = [
     {"name": "Finance", "api_category": "business"},
     {"name": "Business", "api_category": "business"},
     {"name": "Science", "api_category": "science"},
-    {"name": "Sports", "api_category": "sports"}
+    {"name": "Sports", "api_category": "sports"},
+    {"name": "Games", "api_category": None, "query": "video games"},
+    {"name": "Crypto", "api_category": None, "query": "cryptocurrency OR bitcoin"},
+    {"name": "Stocks", "api_category": None, "query": "stock market"},
+    {"name": "Wars", "api_category": None, "query": "war OR conflict"},
+    {"name": "History", "api_category": None, "query": "history"},
+    {"name": "Remedies", "api_category": None, "query": "health remedies OR natural remedies"},
+    {"name": "Startups", "api_category": None, "query": "startups OR venture capital"},
+    # 🔥 NEW
+    {"name": "AI Tools", "api_category": None, "query": "AI tools OR artificial intelligence tools"},
+    {"name": "Reddit", "api_category": None, "query": "reddit"},
 ]
+
+# ========================
+# 🔔 GMAIL ALERT
+# ========================
+def send_gmail(subject, body):
+    gmail_email = os.getenv("GMAIL_EMAIL")
+    gmail_app_password = os.getenv("GMAIL_APP_PASSWORD")
+    alert_email = os.getenv("ALERT_EMAIL")
+    
+    if not gmail_email or not gmail_app_password or not alert_email:
+        print("⚠️ Gmail not configured")
+        return
+    
+    try:
+        msg = MIMEText(body)
+        msg['Subject'] = subject
+        msg['From'] = gmail_email
+        msg['To'] = alert_email
+        
+        smtp = smtplib.SMTP('smtp.gmail.com', 587)
+        smtp.starttls()
+        smtp.login(gmail_email, gmail_app_password)
+        smtp.send_message(msg)
+        smtp.quit()
+        print(f"✅ Email sent: {subject}")
+    except Exception as e:
+        print(f"❌ Email error: {e}")
+
+def get_pkt_time():
+    utc_now = datetime.now(timezone.utc)
+    pkt_now = utc_now + timedelta(hours=5)
+    return pkt_now.strftime("%Y-%m-%d %I:%M:%S %p")
+
+def send_start_alert():
+    send_gmail(
+        "🚀 Sumly Scraper Started",
+        f"✅ Started at {get_pkt_time()}\nCategories: {', '.join([c['name'] for c in CATEGORIES])}"
+    )
+
+def send_end_alert(total_inserted, failed_categories):
+    status = "⚠️ Partial Failure" if failed_categories else "✅ Complete Success"
+    send_gmail(
+        "✅ Sumly Scraper Finished",
+        f"Status: {status}\nTime: {get_pkt_time()}\nInserted: {total_inserted}\nFailed: {', '.join(failed_categories) if failed_categories else 'None'}"
+    )
+
+# ========================
+# 📡 FETCH FROM REDDIT (Direct API)
+# ========================
+def fetch_reddit_posts(subreddit_name, limit=5):
+    """Fetch hot posts from a subreddit using PRAW"""
+    if not reddit_client:
+        return []
+    
+    try:
+        subreddit = reddit_client.subreddit(subreddit_name)
+        posts = []
+        for post in subreddit.hot(limit=limit):
+            if not post.selftext and not post.title:
+                continue
+            posts.append({
+                "title": post.title,
+                "description": post.selftext[:500] if post.selftext else post.title,
+                "url": f"https://reddit.com{post.permalink}",
+                "image_url": post.url if post.url.endswith(('.jpg', '.png', '.gif')) else "",
+                "publishedAt": datetime.fromtimestamp(post.created_utc).isoformat(),
+                "source_name": f"r/{subreddit_name}"
+            })
+        return posts
+    except Exception as e:
+        print(f"❌ Reddit error: {e}")
+        return []
 
 # ========================
 # 📡 FETCH FROM NEWS API
 # ========================
-def fetch_articles(category_config):
+def fetch_articles_with_failover(category_config):
+    if not NEWS_API_KEYS:
+        print("❌ No API keys configured!")
+        return []
+    
+    # 🔥 Special handling for Reddit: Try direct Reddit API first
+    if category_config["name"] == "Reddit" and reddit_client:
+        print("  📡 Fetching directly from Reddit API...")
+        posts = fetch_reddit_posts("all", limit=8)
+        if posts:
+            print(f"  ✅ Fetched {len(posts)} posts from Reddit")
+            return posts
+        else:
+            print("  ⚠️ Reddit API returned no posts, falling back to NewsData.io...")
+    
+    # NewsData.io fallback for all categories (including Reddit)
+    for idx, api_key in enumerate(NEWS_API_KEYS):
+        articles = fetch_articles(category_config, api_key)
+        if articles is not None:
+            if idx > 0:
+                print(f"  ✅ Switched to API Key #{idx+1}")
+            return articles
+        if idx < len(NEWS_API_KEYS) - 1:
+            print(f"  ⚠️ API Key #{idx+1} failed, trying next...")
+    
+    print(f"❌ All {len(NEWS_API_KEYS)} API keys failed for {category_config['name']}")
+    return []
+
+def fetch_articles(category_config, api_key):
     url = "https://newsdata.io/api/1/news"
     params = {
-        "apikey": NEWS_API_KEY,
+        "apikey": api_key,
         "language": "en",
         "size": 10,
     }
@@ -56,18 +202,15 @@ def fetch_articles(category_config):
         data = response.json()
         
         if data.get("status") != "success":
-            # 🔥 FIX: Root mein message hai ya results ke andar
             error_msg = data.get('message') or data.get('results', {}).get('message', 'Unknown error')
-            print(f"⚠️ API Error: {error_msg}")
-            return []
+            print(f"  ❌ API Error ({api_key[:10]}...): {error_msg}")
+            return None
         
         results = data.get("results", [])
         articles = []
         for item in results:
             if item.get("duplicate") == True:
-                print(f"  ⚠️ Duplicate skipped: {item.get('title', '')[:40]}...")
                 continue
-                
             articles.append({
                 "title": item.get("title", "No title"),
                 "description": item.get("description", ""),
@@ -78,30 +221,25 @@ def fetch_articles(category_config):
             })
         return articles
     except Exception as e:
-        print(f"❌ Error fetching: {e}")
-        return []
+        print(f"  ❌ Request Error ({api_key[:10]}...): {e}")
+        return None
 
 # ========================
-# 🤖 GROQ SUMMARIZER (Updated)
+# 🤖 GROQ SUMMARIZER
 # ========================
 def summarize_text(text):
     if not text or len(text) < 20:
         return None
     
-    # 🔥 Skip placeholder content
     placeholder_phrases = [
-        "no article provided",
-        "no content",
-        "article not found",
-        "please share the article",
-        "no text available",
-        "there is no article"
+        "no article provided", "no content", "article not found",
+        "please share the article", "no text available", "there is no article"
     ]
     
     text_lower = text.lower()
     for phrase in placeholder_phrases:
         if phrase in text_lower:
-            print(f"  ⚠️ Placeholder content detected: '{text[:50]}...'")
+            print(f"  ⚠️ Placeholder content detected")
             return None
     
     try:
@@ -129,7 +267,6 @@ def summarize_text(text):
 # ========================
 def save_to_supabase(title, summary, source_url, category, image_url, source_name, published_at=""):
     if not summary:
-        print(f"  ⏭️ Skipped: No summary for {title[:40]}...")
         return False
     
     if not image_url or len(image_url) < 10:
@@ -161,19 +298,24 @@ def save_to_supabase(title, summary, source_url, category, image_url, source_nam
 # 🚀 MAIN FUNCTION
 # ========================
 def main():
-    print("🚀 NewsData.io Scraper Started!")
-    print(f"📅 Time: {datetime.now(timezone.utc).isoformat()}")
+    send_start_alert()
+    
+    print("🚀 Sumly Scraper Started!")
+    print(f"📅 Time (PKT): {get_pkt_time()}")
+    print(f"🔑 {len(NEWS_API_KEYS)} API keys loaded")
     print("-" * 50)
     
     total_inserted = 0
+    failed_categories = []
     
     for cat in CATEGORIES:
         cat_name = cat["name"]
         print(f"\n📌 Fetching: {cat_name}")
         
-        articles = fetch_articles(cat)
+        articles = fetch_articles_with_failover(cat)
         if not articles:
             print(f"⚠️ No new articles found for {cat_name}")
+            failed_categories.append(cat_name)
             continue
         
         for idx, article in enumerate(articles):
@@ -186,7 +328,7 @@ def main():
             
             summary = summarize_text(text)
             if not summary or len(summary) < 5:
-                print(f"  ⚠️ Summary failed or invalid, skipping...")
+                print(f"  ⚠️ Summary failed, skipping...")
                 continue
             
             success = save_to_supabase(
@@ -206,6 +348,13 @@ def main():
     
     print("-" * 50)
     print(f"✅ Finished! Inserted {total_inserted} new summaries.")
+    print(f"🕐 Finished Time (PKT): {get_pkt_time()}")
+    
+    send_end_alert(total_inserted, failed_categories)
+    
+    if failed_categories:
+        print(f"🔔 ALERT: {len(failed_categories)} categories failed: {', '.join(failed_categories)}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

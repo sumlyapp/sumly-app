@@ -15,19 +15,32 @@ export default function LoginPage() {
   const handleLogin = async (e) => {
     e.preventDefault()
     setLoading(true)
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     setLoading(false)
+    
     if (error) {
       alert(error.message)
+      return
+    }
+
+    // ✅ Check if user has interests
+    const { data: interests, error: interestError } = await supabase
+      .from('user_interests')
+      .select('id')
+      .eq('user_id', data.user.id)
+      .limit(1)
+
+    if (interests && interests.length > 0) {
+      router.push('/feed')       // 🔥 Already has interests → Feed
     } else {
-      router.push('/interests') // 🔥 FIX: Interests par bhejo
+      router.push('/interests')  // 🔥 New user / No interests → Interests
     }
   }
 
   const handleGoogleLogin = async () => {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin + '/interests' }
+      options: { redirectTo: window.location.origin + '/login' }
     })
   }
 
@@ -40,6 +53,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center font-sans antialiased relative overflow-hidden bg-[#0a0a0b]">
+      
       <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1)_0%,transparent_40%)] pointer-events-none"></div>
       <div aria-hidden="true" className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-900/20 rounded-full blur-[120px] pointer-events-none"></div>
 
@@ -123,8 +137,12 @@ export default function LoginPage() {
             </div>
 
             <div className="pt-2">
-              <button type="submit" disabled={loading} className="w-full bg-white text-[#0a0a0b] hover:bg-zinc-200 font-semibold py-3.5 rounded-full transition-all duration-300 shadow-lg shadow-purple-900/20 disabled:opacity-50">
-                {loading ? 'Loading...' : 'Sign in'}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-white text-[#0a0a0b] hover:bg-zinc-200 font-semibold py-3.5 rounded-full transition-all duration-300 shadow-lg shadow-purple-900/20 disabled:opacity-50"
+              >
+                {loading ? 'Loading...' : 'Login'}  {/* 🔥 SIGN IN -> LOGIN */}
               </button>
             </div>
           </form>
@@ -136,7 +154,10 @@ export default function LoginPage() {
               <div className="h-[1px] flex-1 bg-zinc-800"></div>
             </div>
 
-            <button onClick={handleGoogleLogin} className="w-full bg-[#2a2a2e]/50 border border-zinc-800 hover:bg-[#2a2a2e] transition-colors py-3 rounded-xl flex items-center justify-center gap-3">
+            <button
+              onClick={handleGoogleLogin}
+              className="w-full bg-[#2a2a2e]/50 border border-zinc-800 hover:bg-[#2a2a2e] transition-colors py-3 rounded-xl flex items-center justify-center gap-3"
+            >
               <svg height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
@@ -147,7 +168,8 @@ export default function LoginPage() {
             </button>
 
             <p className="text-center mt-8 text-sm text-zinc-500">
-              Don't have an account? <Link href="/signup" className="text-white hover:underline transition-all">Sign up</Link>
+              Don't have an account?{' '}
+              <Link href="/signup" className="text-white hover:underline transition-all">Sign up</Link>
             </p>
           </div>
         </div>

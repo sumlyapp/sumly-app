@@ -56,7 +56,9 @@ def fetch_articles(category_config):
         data = response.json()
         
         if data.get("status") != "success":
-            print(f"⚠️ API Error: {data.get('message', 'Unknown error')}")
+            # 🔥 FIX: Root mein message hai ya results ke andar
+            error_msg = data.get('message') or data.get('results', {}).get('message', 'Unknown error')
+            print(f"⚠️ API Error: {error_msg}")
             return []
         
         results = data.get("results", [])
@@ -80,7 +82,7 @@ def fetch_articles(category_config):
         return []
 
 # ========================
-# 🤖 GROQ SUMMARIZER (UPDATED)
+# 🤖 GROQ SUMMARIZER (Updated)
 # ========================
 def summarize_text(text):
     if not text or len(text) < 20:

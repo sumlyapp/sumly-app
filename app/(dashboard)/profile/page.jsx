@@ -3,7 +3,12 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabaseClient'
 
-const ALL_CATEGORIES = ['Tech', 'Health', 'Finance', 'Sports', 'AI', 'Business', 'Science', 'Lifestyle']
+// 🔥 ALL CATEGORIES (Match with Interests page)
+const ALL_CATEGORIES = [
+  'Tech', 'AI', 'Health', 'Finance', 'Business', 'Science', 'Sports',
+  'Games', 'Crypto', 'Stocks', 'Wars', 'History', 'Remedies', 'Startups',
+  'AI Tools', 'Reddit'
+]
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState(null)
@@ -45,7 +50,7 @@ export default function ProfilePage() {
     fetchProfile()
   }, [])
 
-  //  TOGGLE INTEREST (Add/Remove)
+  // 🔥 TOGGLE INTEREST (Add/Remove)
   const toggleInterest = (category) => {
     if (tempInterests.includes(category)) {
       setTempInterests(tempInterests.filter(c => c !== category))
@@ -54,7 +59,7 @@ export default function ProfilePage() {
     }
   }
 
-  // SAVE INTERESTS
+  // 🔥 SAVE INTERESTS
   const saveInterests = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
@@ -103,7 +108,7 @@ export default function ProfilePage() {
 
         <div className="bg-white/5 backdrop-blur-xl rounded-2xl shadow-[0_0_40px_rgba(139,92,246,0.15)] border border-white/10 p-6 space-y-4">
           
-          {/* 🔥 Avatar + Username */}
+          {/* Avatar + Username */}
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full bg-purple-600/30 flex items-center justify-center text-3xl">
               {profile?.username?.[0]?.toUpperCase() || 'U'}
@@ -122,7 +127,7 @@ export default function ProfilePage() {
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-teal-400">{profile?.streak || 0}</p>
-              <p className="text-xs text-zinc-500"> Streak</p>
+              <p className="text-xs text-zinc-500">🔥 Streak</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-yellow-400">{profile?.daily_count || 0}</p>
@@ -133,13 +138,16 @@ export default function ProfilePage() {
           {/* 🔥 INTERESTS WITH EDIT MODE */}
           <div className="pt-4 border-t border-white/10">
             <div className="flex justify-between items-center mb-2">
-              <p className="text-sm text-zinc-400"> Your Interests</p>
+              <p className="text-sm text-zinc-400">📌 Your Interests</p>
               {!isEditing ? (
                 <button
-                  onClick={() => setIsEditing(true)}
+                  onClick={() => {
+                    setTempInterests(interests)
+                    setIsEditing(true)
+                  }}
                   className="text-xs text-purple-400 hover:text-purple-300 transition"
                 >
-                   Edit
+                  ✏️ Edit
                 </button>
               ) : (
                 <div className="flex gap-2">
@@ -147,7 +155,7 @@ export default function ProfilePage() {
                     onClick={saveInterests}
                     className="text-xs text-teal-400 hover:text-teal-300 transition"
                   >
-                     Save
+                    💾 Save
                   </button>
                   <button
                     onClick={() => {
@@ -162,9 +170,9 @@ export default function ProfilePage() {
               )}
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto">
               {isEditing ? (
-                // 🔥 EDIT MODE: Show all categories with toggles
+                // 🔥 EDIT MODE: Show ALL categories
                 ALL_CATEGORIES.map((cat) => (
                   <button
                     key={cat}

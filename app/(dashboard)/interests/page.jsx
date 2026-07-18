@@ -72,9 +72,8 @@ export default function InterestsPage() {
             boxShadow: 'rgba(139, 92, 246, 0.15) 0px 0px 80px, rgba(255, 255, 255, 0.1) 0px 0px 30px inset, rgba(255, 255, 255, 0.4) 0px 1px 0px inset, rgba(255, 255, 255, 0.1) 0px -1px 0px inset'
           }}
         >
-          {/* 🔥 HEADER - No Dots, Simple Emoji */}
+          {/*  HEADER - No Dots, Simple Emoji */}
           <header className="text-center mb-8">
-            <div className="text-4xl mb-3">🎯</div>
             <h1 className="text-white text-2xl font-bold mb-2 tracking-tight">Select Interests</h1>
             <p className="text-zinc-400 text-sm">Pick at least 3 topics you love.</p>
           </header>

@@ -1,10 +1,10 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabaseClient'
 
 // ========================
-// 🔥 FALLBACK FACTS
+// 🔥 FALLBACK FACTS (20 total)
 // ========================
 const FALLBACK_FACTS = [
   "A jellyfish is 95% water.",
@@ -21,7 +21,12 @@ const FALLBACK_FACTS = [
   "Curated knowledge is 70% more likely to be remembered than random facts.",
   "Over 4.5 billion people use the internet daily, but only 1% read past the headline.",
   "AI-powered summarization reduces information overload by 40%.",
-  "People who read summaries daily save over 20 hours per month."
+  "People who read summaries daily save over 20 hours per month.",
+  "The shortest war in history lasted only 38 minutes.",
+  "A single cup of coffee contains over 1,000 different chemical compounds.",
+  "The first computer virus was created in 1983 and was called 'Elk Cloner'.",
+  "Wombat poop is cube-shaped.",
+  "The average person spends about 6 months of their life waiting for red lights to turn green."
 ]
 
 // ========================
@@ -70,6 +75,8 @@ export default function FeedPage() {
   const [savedIds, setSavedIds] = useState([])
   const [factCards, setFactCards] = useState([])
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const queryParam = searchParams.get('q')
 
   const handleSave = async (summaryId) => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -107,7 +114,9 @@ export default function FeedPage() {
       setAllCategories(['All', ...uniqueCategories])
 
       let query = supabase.from('summaries').select('*')
-      if (uniqueCategories.length > 0) {
+      if (queryParam) {
+        query = query.textSearch('title', queryParam, { config: 'english' })
+      } else if (uniqueCategories.length > 0) {
         query = query.in('category', uniqueCategories)
       }
       const { data, error } = await query.order('created_at', { ascending: false })
@@ -128,14 +137,23 @@ export default function FeedPage() {
     }
 
     fetchData()
-  }, [])
+  }, [queryParam])
 
+  // 🔥 ========================
+  // 🔥 FIX: UPDATE STATS (Score + Streak) - YEH ADD KARO
+  // 🔥 ========================
   useEffect(() => {
     const updateStats = async () => {
       try {
-        await fetch('/api/stats', { method: 'POST' })
+        const response = await fetch('/api/stats', { method: 'POST' })
+        const data = await response.json()
+        if (data.success) {
+          console.log('✅ Stats updated:', data.profile)
+        } else {
+          console.error('❌ Stats update failed:', data.error)
+        }
       } catch (e) {
-        console.log('Stats update skipped')
+        console.log('⚠️ Stats update skipped:', e)
       }
     }
     updateStats()
@@ -177,8 +195,10 @@ export default function FeedPage() {
       <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1)_0%,transparent_40%)] pointer-events-none"></div>
       <div aria-hidden="true" className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-900/20 rounded-full blur-[120px] pointer-events-none"></div>
 
+      {/* HEADER - Sirf Profile + Leaderboard */}
       <div className="sticky top-0 z-20 bg-[#0a0a0b]/80 backdrop-blur-xl border-b border-white/10">
         <div className="flex justify-between items-center px-4 py-3">
+          
           <div className="flex gap-3 overflow-x-auto pb-1 flex-1 hide-scrollbar">
             {allCategories.length > 0 ? (
               allCategories.map((cat, index) => (
@@ -199,19 +219,12 @@ export default function FeedPage() {
             )}
           </div>
 
-          {/* 🔥 NO EMOJIS - SIRF TEXT */}
           <div className="flex items-center gap-2 ml-3 flex-shrink-0">
             <button onClick={() => router.push('/profile')} className="px-3 py-1.5 rounded-full bg-white/5 backdrop-blur-md border border-white/10 text-sm text-zinc-400 hover:text-white hover:bg-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all duration-300">
               Profile
             </button>
             <button onClick={() => router.push('/leaderboard')} className="px-3 py-1.5 rounded-full bg-white/5 backdrop-blur-md border border-white/10 text-sm text-zinc-400 hover:text-white hover:bg-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all duration-300">
               Leaderboard
-            </button>
-            <button onClick={() => router.push('/saved')} className="px-3 py-1.5 rounded-full bg-white/5 backdrop-blur-md border border-white/10 text-sm text-zinc-400 hover:text-white hover:bg-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all duration-300">
-              Saved
-            </button>
-            <button onClick={handleLogout} className="px-3 py-1.5 rounded-full bg-white/5 backdrop-blur-md border border-white/10 text-sm text-zinc-400 hover:text-white hover:bg-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all duration-300">
-              Logout
             </button>
           </div>
         </div>
@@ -233,18 +246,29 @@ export default function FeedPage() {
                 className="bg-white/5 backdrop-blur-xl rounded-2xl shadow-[0_0_40px_rgba(139,92,246,0.15)] border border-white/10 overflow-hidden flex flex-col animate-slide-up"
                 style={{ animationDelay: `${index * 0.1}s`, opacity: 0 }}
               >
-                {item.image_url && (
-                  <div className="w-full h-56 lg:h-72 bg-gray-800 flex-shrink-0 overflow-hidden">
+                <div className="w-full h-56 lg:h-72 bg-gray-800 flex-shrink-0 overflow-hidden relative">
+                  {item.image_url ? (
                     <img
                       src={item.image_url}
                       alt={item.title}
                       className="w-full h-full object-cover"
                       onError={(e) => {
-                        e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='200' viewBox='0 0 400 200'%3E%3Crect width='400' height='200' fill='%231e293b'/%3E%3Ctext x='200' y='110' font-family='sans-serif' font-size='20' fill='%2394a3b8' text-anchor='middle'%3ENo Image%3C/text%3E%3C/svg%3E"
+                        e.target.style.display = 'none'
+                        e.target.parentElement.innerHTML = `
+                          <div class="flex flex-col items-center justify-center w-full h-full bg-[#1e293b] text-zinc-500">
+                            <span class="text-5xl mb-2">📰</span>
+                            <span class="text-sm">No Image</span>
+                          </div>
+                        `
                       }}
                     />
-                  </div>
-                )}
+                  ) : (
+                    <div className="flex flex-col items-center justify-center w-full h-full bg-[#1e293b] text-zinc-500">
+                      <span className="text-5xl mb-2">📰</span>
+                      <span className="text-sm">No Image</span>
+                    </div>
+                  )}
+                </div>
 
                 <div className="p-6 flex flex-col flex-grow">
                   <span className="text-xs font-bold text-purple-400 uppercase tracking-wider">{item.category}</span>

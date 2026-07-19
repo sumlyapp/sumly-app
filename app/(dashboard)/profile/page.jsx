@@ -26,14 +26,12 @@ export default function ProfilePage() {
         return
       }
 
-      // Fetch profile
       const { data: profileData } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', user.id)
         .single()
 
-      // Fetch interests
       const { data: interestsData } = await supabase
         .from('user_interests')
         .select('category')
@@ -50,7 +48,6 @@ export default function ProfilePage() {
     fetchProfile()
   }, [])
 
-  // 🔥 TOGGLE INTEREST (Add/Remove)
   const toggleInterest = (category) => {
     if (tempInterests.includes(category)) {
       setTempInterests(tempInterests.filter(c => c !== category))
@@ -59,18 +56,15 @@ export default function ProfilePage() {
     }
   }
 
-  // 🔥 SAVE INTERESTS
   const saveInterests = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    // Delete all existing interests
     await supabase
       .from('user_interests')
       .delete()
       .eq('user_id', user.id)
 
-    // Insert new interests
     if (tempInterests.length > 0) {
       const entries = tempInterests.map(cat => ({ user_id: user.id, category: cat }))
       await supabase.from('user_interests').insert(entries)
@@ -99,11 +93,18 @@ export default function ProfilePage() {
       <div aria-hidden="true" className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-900/20 rounded-full blur-[120px] pointer-events-none"></div>
 
       <div className="max-w-2xl mx-auto px-4 py-8 relative z-10">
+        {/* 🔥 HEADER WITH FEED + SAVED BUTTONS */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-white">Profile</h1>
-          <button onClick={() => router.push('/feed')} className="px-3 py-1.5 rounded-full bg-white/5 backdrop-blur-md border border-white/10 text-sm text-zinc-400 hover:text-white transition">
-            Feed
-          </button>
+          <div className="flex gap-2">
+            <button onClick={() => router.push('/feed')} className="px-3 py-1.5 rounded-full bg-white/5 backdrop-blur-md border border-white/10 text-sm text-zinc-400 hover:text-white hover:bg-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all duration-300">
+              Feed
+            </button>
+            {/* 🔥 SAVED BUTTON ADDED HERE */}
+            <button onClick={() => router.push('/saved')} className="px-3 py-1.5 rounded-full bg-white/5 backdrop-blur-md border border-white/10 text-sm text-zinc-400 hover:text-white hover:bg-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all duration-300">
+              Saved
+            </button>
+          </div>
         </div>
 
         <div className="bg-white/5 backdrop-blur-xl rounded-2xl shadow-[0_0_40px_rgba(139,92,246,0.15)] border border-white/10 p-6 space-y-4">
@@ -172,7 +173,6 @@ export default function ProfilePage() {
 
             <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto">
               {isEditing ? (
-                // 🔥 EDIT MODE: Show ALL categories
                 ALL_CATEGORIES.map((cat) => (
                   <button
                     key={cat}
@@ -188,7 +188,6 @@ export default function ProfilePage() {
                   </button>
                 ))
               ) : (
-                // 🔥 VIEW MODE: Show selected interests only
                 interests.length > 0 ? (
                   interests.map((cat, index) => (
                     <span key={`${cat}-${index}`} className="px-3 py-1 rounded-full bg-white/10 border border-white/10 text-xs text-zinc-300">
@@ -208,6 +207,7 @@ export default function ProfilePage() {
             )}
           </div>
 
+          {/* 🔥 LOGOUT BUTTON (YAHIN RAKHA) */}
           <button onClick={handleLogout} className="w-full mt-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-zinc-400 hover:text-white hover:bg-white/10 transition">
             Logout
           </button>

@@ -3,9 +3,6 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabaseClient'
 
-// 🔥 Sab se zaroori line: Force dynamic (build par prerender nahi karega)
-export const dynamic = 'force-dynamic'
-
 // ========================
 // 🔥 FALLBACK FACTS
 // ========================
@@ -77,14 +74,7 @@ export default function FeedPage() {
   const [allCategories, setAllCategories] = useState([])
   const [savedIds, setSavedIds] = useState([])
   const [factCards, setFactCards] = useState([])
-  const [queryParam, setQueryParam] = useState(null)
   const router = useRouter()
-
-  // 🔥 Search query ko client-side safe tareeqe se uthao
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    setQueryParam(params.get('q'))
-  }, [])
 
   const handleSave = async (summaryId) => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -122,9 +112,7 @@ export default function FeedPage() {
       setAllCategories(['All', ...uniqueCategories])
 
       let query = supabase.from('summaries').select('*')
-      if (queryParam) {
-        query = query.textSearch('title', queryParam, { config: 'english' })
-      } else if (uniqueCategories.length > 0) {
+      if (uniqueCategories.length > 0) {
         query = query.in('category', uniqueCategories)
       }
       const { data, error } = await query.order('created_at', { ascending: false })
@@ -145,7 +133,7 @@ export default function FeedPage() {
     }
 
     fetchData()
-  }, [queryParam])
+  }, [])
 
   // 🔥 Stats Update
   useEffect(() => {
@@ -196,21 +184,24 @@ export default function FeedPage() {
   let factIndex = 0
 
   return (
-    <div className="min-h-screen bg-[#0a0a0b] overflow-y-scroll relative">
+    // 🔥 pb-24 added to prevent bottom nav overlap
+    <div className="min-h-screen bg-[#0a0a0b] overflow-y-scroll relative pb-24">
       
       <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1)_0%,transparent_40%)] pointer-events-none"></div>
       <div aria-hidden="true" className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-900/20 rounded-full blur-[120px] pointer-events-none"></div>
 
+      {/* 🔥 HEADER - Categories ONLY (Search Bar Hata Diya) */}
       <div className="sticky top-0 z-20 bg-[#0a0a0b]/80 backdrop-blur-xl border-b border-white/10">
         <div className="flex justify-between items-center px-4 py-3">
           
-          <div className="flex gap-3 overflow-x-auto pb-1 flex-1 hide-scrollbar">
+          {/* 🔥 Categories - Mobile Fixed (Horizontal Scroll) */}
+          <div className="flex gap-3 overflow-x-auto pb-1 flex-1 min-w-0 hide-scrollbar">
             {allCategories.length > 0 ? (
               allCategories.map((cat, index) => (
                 <button
                   key={`${cat}-${index}`}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-300 ${
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-300 flex-shrink-0 ${
                     selectedCategory === cat
                       ? 'bg-white text-[#0a0a0b] shadow-lg shadow-purple-900/20'
                       : 'bg-[#2a2a2e]/50 text-zinc-300 hover:bg-[#2a2a2e] border border-zinc-800'
@@ -224,6 +215,7 @@ export default function FeedPage() {
             )}
           </div>
 
+          {/* 🔥 Right Side: Profile & Leaderboard */}
           <div className="flex items-center gap-2 ml-3 flex-shrink-0">
             <button onClick={() => router.push('/profile')} className="px-3 py-1.5 rounded-full bg-white/5 backdrop-blur-md border border-white/10 text-sm text-zinc-400 hover:text-white hover:bg-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all duration-300">
               Profile
@@ -235,6 +227,7 @@ export default function FeedPage() {
         </div>
       </div>
 
+      {/* ========== FEED CONTENT ========== */}
       <div className="max-w-2xl mx-auto px-4 py-4 relative z-10 space-y-4">
 
         {filteredSummaries.length === 0 ? (

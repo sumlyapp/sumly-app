@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import "./globals.css";  // 🔥 YEH LINE IMPORTANT HAI
+import "./globals.css";
+import BottomNav from "../components/BottomNav";
 
 export const metadata: Metadata = {
-  title: "Summarise",
-  description: "Read less, know more",
+  title: "Sumly",
+  description: "Your daily dose of curated wisdom",
 };
 
 export default function RootLayout({
@@ -13,7 +14,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className="pb-16">
+        {children}
+        <BottomNav />
+      </body>
     </html>
   );
 }

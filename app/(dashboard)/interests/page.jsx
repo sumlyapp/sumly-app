@@ -4,12 +4,13 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabaseClient'
 import Button from '../../../components/ui/Button'
 
-// 🔥 CATEGORIES LIST
+// CATEGORIES LIST
 const categories = [
   'Tech', 'AI', 'Health', 'Finance', 'Business', 'Science', 'Sports',
-  'Games', 'Crypto', 'Stocks', 'Wars', 'History', 'Remedies', 'Startups',
-  'AI Tools',   // 🔥 NEW
-  'Reddit'      // 🔥 NEW
+  'Games',  //  NEW
+  'Books',  // NEW
+  'Crypto', 'Stocks', 'Wars', 'History', 'Remedies', 'Startups',
+  'AI Tools', 'Reddit'
 ]
 
 export default function InterestsPage() {

@@ -38,7 +38,7 @@ export default function SplashPage() {
             boxShadow: 'rgba(139, 92, 246, 0.15) 0px 0px 80px, rgba(255, 255, 255, 0.1) 0px 0px 30px inset, rgba(255, 255, 255, 0.4) 0px 1px 0px inset, rgba(255, 255, 255, 0.1) 0px -1px 0px inset'
           }}
         >
-          {/* 🔥 Logo */}
+          {/* Logo */}
           <div className="mb-4 flex justify-center">
             <svg className="text-white" fill="none" height="60" viewBox="0 0 40 40" width="60" xmlns="http://www.w3.org/2000/svg">
               <path d="M20 4C20.5523 4 21 4.44772 21 5C21 5.55228 20.5523 6 20 6C19.4477 6 19 5.55228 19 5C19 4.44772 19.4477 4 20 4Z" fill="currentColor" />

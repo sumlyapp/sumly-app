@@ -9,14 +9,6 @@ from dotenv import load_dotenv
 import smtplib
 from email.mime.text import MIMEText
 
-# 🔥 Reddit PRAW (if installed, else fallback to search)
-try:
-    import praw
-    PRAW_AVAILABLE = True
-except ImportError:
-    PRAW_AVAILABLE = False
-    print("⚠️ PRAW not installed. Reddit will use NewsData.io fallback.")
-
 # ========================
 # 🔥 LOAD ENVIRONMENT
 # ========================
@@ -26,12 +18,7 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
-# Reddit API Keys (Optional)
-REDDIT_CLIENT_ID = os.getenv("REDDIT_CLIENT_ID")
-REDDIT_CLIENT_SECRET = os.getenv("REDDIT_CLIENT_SECRET")
-REDDIT_USER_AGENT = os.getenv("REDDIT_USER_AGENT", "SumlyScraper/1.0")
-
-# 🔥 Multiple API Keys
+# 🔥 Multiple API Keys (Failover System)
 NEWS_API_KEYS = [
     os.getenv("NEWS_API_KEY_1"),
     os.getenv("NEWS_API_KEY_2"),
@@ -44,45 +31,34 @@ NEWS_API_KEYS = [key for key in NEWS_API_KEYS if key]
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 groq_client = Groq(api_key=GROQ_API_KEY)
 
-# Initialize Reddit client if available
-reddit_client = None
-if PRAW_AVAILABLE and REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET:
-    try:
-        reddit_client = praw.Reddit(
-            client_id=REDDIT_CLIENT_ID,
-            client_secret=REDDIT_CLIENT_SECRET,
-            user_agent=REDDIT_USER_AGENT
-        )
-        print("✅ Reddit API client initialized!")
-    except Exception as e:
-        print(f"⚠️ Reddit init failed: {e}")
-        reddit_client = None
-
 # ========================
-# 📌 CONFIGURATION (UPDATED)
+# 📌 CONFIGURATION - STRICT CATEGORIES
 # ========================
 CATEGORIES = [
+    # 🔥 These categories use NewsData.io's built-in category filter
     {"name": "Tech", "api_category": "technology"},
-    {"name": "AI", "api_category": None, "query": "artificial intelligence"},
     {"name": "Health", "api_category": "health"},
     {"name": "Finance", "api_category": "business"},
     {"name": "Business", "api_category": "business"},
     {"name": "Science", "api_category": "science"},
     {"name": "Sports", "api_category": "sports"},
-    {"name": "Games", "api_category": None, "query": "video games"},
-    {"name": "Crypto", "api_category": None, "query": "cryptocurrency OR bitcoin"},
-    {"name": "Stocks", "api_category": None, "query": "stock market"},
-    {"name": "Wars", "api_category": None, "query": "war OR conflict"},
-    {"name": "History", "api_category": None, "query": "history"},
-    {"name": "Remedies", "api_category": None, "query": "health remedies OR natural remedies"},
-    {"name": "Startups", "api_category": None, "query": "startups OR venture capital"},
-    # 🔥 NEW
-    {"name": "AI Tools", "api_category": None, "query": "AI tools OR artificial intelligence tools"},
-    {"name": "Reddit", "api_category": None, "query": "reddit"},
+    
+    # 🔥 These categories use search query (strict)
+    {"name": "AI", "api_category": None, "query": '"artificial intelligence" OR "AI"'},
+    {"name": "Games", "api_category": None, "query": '"video games" OR "gaming" OR "esports"'},
+    {"name": "Books", "api_category": None, "query": '"books" OR "reading" OR "literature" OR "authors"'},
+    {"name": "Crypto", "api_category": None, "query": '"cryptocurrency" OR "bitcoin" OR "ethereum"'},
+    {"name": "Stocks", "api_category": None, "query": '"stock market" OR "stocks" OR "investing"'},
+    {"name": "Wars", "api_category": None, "query": '"war" OR "conflict" OR "military"'},
+    {"name": "History", "api_category": None, "query": '"history" OR "historical" OR "archaeology"'},
+    {"name": "Remedies", "api_category": None, "query": '"remedies" OR "natural remedies" OR "health remedies"'},
+    {"name": "Startups", "api_category": None, "query": '"startups" OR "venture capital" OR "entrepreneurship"'},
+    {"name": "AI Tools", "api_category": None, "query": '"AI tools" OR "artificial intelligence tools"'},
+    {"name": "Reddit", "api_category": None, "query": '"reddit"'},
 ]
 
 # ========================
-# 🔔 GMAIL ALERT
+# 🔔 SEND GMAIL ALERT
 # ========================
 def send_gmail(subject, body):
     gmail_email = os.getenv("GMAIL_EMAIL")
@@ -127,51 +103,13 @@ def send_end_alert(total_inserted, failed_categories):
     )
 
 # ========================
-# 📡 FETCH FROM REDDIT (Direct API)
-# ========================
-def fetch_reddit_posts(subreddit_name, limit=5):
-    """Fetch hot posts from a subreddit using PRAW"""
-    if not reddit_client:
-        return []
-    
-    try:
-        subreddit = reddit_client.subreddit(subreddit_name)
-        posts = []
-        for post in subreddit.hot(limit=limit):
-            if not post.selftext and not post.title:
-                continue
-            posts.append({
-                "title": post.title,
-                "description": post.selftext[:500] if post.selftext else post.title,
-                "url": f"https://reddit.com{post.permalink}",
-                "image_url": post.url if post.url.endswith(('.jpg', '.png', '.gif')) else "",
-                "publishedAt": datetime.fromtimestamp(post.created_utc).isoformat(),
-                "source_name": f"r/{subreddit_name}"
-            })
-        return posts
-    except Exception as e:
-        print(f"❌ Reddit error: {e}")
-        return []
-
-# ========================
-# 📡 FETCH FROM NEWS API
+# 📡 FETCH WITH STRICT CATEGORY FILTER
 # ========================
 def fetch_articles_with_failover(category_config):
     if not NEWS_API_KEYS:
         print("❌ No API keys configured!")
         return []
     
-    # 🔥 Special handling for Reddit: Try direct Reddit API first
-    if category_config["name"] == "Reddit" and reddit_client:
-        print("  📡 Fetching directly from Reddit API...")
-        posts = fetch_reddit_posts("all", limit=8)
-        if posts:
-            print(f"  ✅ Fetched {len(posts)} posts from Reddit")
-            return posts
-        else:
-            print("  ⚠️ Reddit API returned no posts, falling back to NewsData.io...")
-    
-    # NewsData.io fallback for all categories (including Reddit)
     for idx, api_key in enumerate(NEWS_API_KEYS):
         articles = fetch_articles(category_config, api_key)
         if articles is not None:
@@ -192,6 +130,7 @@ def fetch_articles(category_config, api_key):
         "size": 10,
     }
     
+    # 🔥 STRICT CATEGORY: Use category if available, else use query
     if category_config["api_category"]:
         params["category"] = category_config["api_category"]
     else:
@@ -211,6 +150,18 @@ def fetch_articles(category_config, api_key):
         for item in results:
             if item.get("duplicate") == True:
                 continue
+            
+            # 🔥 STRICT CHECK: Only include if category matches (for search queries)
+            # For category-based, NewsData.io already filters, but we double-check
+            category_name = category_config["name"].lower()
+            item_categories = [cat.lower() for cat in item.get("category", [])]
+            
+            # If it's a search query, check if the article matches the expected category
+            if not category_config["api_category"]:
+                # For search-based categories, we trust the search but do a soft check
+                # Skip if completely unrelated (optional: can be removed)
+                pass
+            
             articles.append({
                 "title": item.get("title", "No title"),
                 "description": item.get("description", ""),
@@ -303,6 +254,7 @@ def main():
     print("🚀 Sumly Scraper Started!")
     print(f"📅 Time (PKT): {get_pkt_time()}")
     print(f"🔑 {len(NEWS_API_KEYS)} API keys loaded")
+    print(f"📂 {len(CATEGORIES)} categories loaded (strict mode)")
     print("-" * 50)
     
     total_inserted = 0

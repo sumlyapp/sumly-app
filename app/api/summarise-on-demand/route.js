@@ -4,11 +4,6 @@ import { NextResponse } from 'next/server'
 import { Groq } from 'groq-sdk'
 import * as cheerio from 'cheerio'
 
-// 🔥 SEPARATE API KEY FOR SUMMARISER
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY_SUMMARISER,
-})
-
 // 🔥 Limit
 const DAILY_LIMIT = 4
 
@@ -43,7 +38,7 @@ async function fetchArticleText(url) {
   }
 }
 
-async function generateSummary(text) {
+async function generateSummary(text, groq) {
   if (!text || text.length < 50) {
     return "Article content too short to summarize."
   }
@@ -94,6 +89,11 @@ function getPKTDateTime() {
 
 export async function POST(request) {
   try {
+    // ✅ NOW USING GROQ_API_KEY (changed from GROQ_API_KEY_SUMMARISER)
+    const groq = new Groq({
+      apiKey: process.env.GROQ_API_KEY,
+    })
+
     const cookieStore = cookies()
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -119,7 +119,7 @@ export async function POST(request) {
     
     const pkt = getPKTDateTime()
     
-    // 🔥 Check rate limit
+    // Check rate limit
     let { data: usageData } = await supabase
       .from('user_summary_usage')
       .select('count')
@@ -138,16 +138,16 @@ export async function POST(request) {
       }, { status: 429 })
     }
     
-    // 🔥 Scrape article
+    // Scrape article
     const text = await fetchArticleText(url)
     if (!text) {
       return NextResponse.json({ error: 'Could not extract article content' }, { status: 500 })
     }
     
-    // 🔥 Generate summary
-    const summary = await generateSummary(text)
+    // Generate summary
+    const summary = await generateSummary(text, groq)
     
-    // 🔥 Update usage
+    // Update usage
     if (usageData) {
       await supabase
         .from('user_summary_usage')

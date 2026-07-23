@@ -3,22 +3,20 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 // 🔥 Pakistan Timezone (UTC+5)
-const PKT_OFFSET = 5 * 60 * 60 * 1000 // 5 hours in milliseconds
-
 function getPKTDate() {
   const now = new Date()
-  const pktTime = new Date(now.getTime() + PKT_OFFSET)
-  return pktTime.toISOString().split('T')[0] // YYYY-MM-DD
+  const pktTime = new Date(now.getTime() + 5 * 60 * 60 * 1000)
+  return pktTime.toISOString().split('T')[0]
 }
 
 function getPKTYesterday() {
   const now = new Date()
-  const pktTime = new Date(now.getTime() + PKT_OFFSET - 24 * 60 * 60 * 1000)
+  const pktTime = new Date(now.getTime() + 5 * 60 * 60 * 1000 - 24 * 60 * 60 * 1000)
   return pktTime.toISOString().split('T')[0]
 }
 
 export async function POST(request) {
-  console.log("🔄 Stats API called")
+  console.log("🔄 /api/stats called")
 
   const cookieStore = cookies()
   
@@ -31,19 +29,19 @@ export async function POST(request) {
           return cookieStore.get(name)?.value
         },
         set(name, value, options) {
-          // No-op for API routes
+          // No-op
         },
         remove(name, options) {
-          // No-op for API routes
+          // No-op
         },
       },
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
   
-  if (!user) {
-    console.log("❌ No user found")
+  if (userError || !user) {
+    console.error("❌ Auth error:", userError?.message || "No user")
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -51,17 +49,17 @@ export async function POST(request) {
 
   const today = getPKTDate()
   const yesterday = getPKTYesterday()
+  console.log(`📅 Today: ${today}, Yesterday: ${yesterday}`)
 
-  console.log(`📅 Today (PKT): ${today}, Yesterday (PKT): ${yesterday}`)
-
-  // 🔥 Fetch or create profile
-  let { data: profile, error } = await supabase
+  // 🔥 1. Fetch or Create Profile
+  let { data: profile, error: fetchError } = await supabase
     .from('profiles')
     .select('*')
     .eq('user_id', user.id)
     .single()
 
-  if (error && error.code === 'PGRST116') {
+  // 🔥 If no profile, CREATE ONE (auto-create fallback)
+  if (fetchError && fetchError.code === 'PGRST116') {
     console.log("🆕 Profile not found, creating...")
     const { data: newProfile, error: insertError } = await supabase
       .from('profiles')
@@ -84,9 +82,9 @@ export async function POST(request) {
     return NextResponse.json({ success: true, profile: newProfile })
   }
 
-  if (error) {
-    console.error("❌ Fetch error:", error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  if (fetchError) {
+    console.error("❌ Fetch error:", fetchError)
+    return NextResponse.json({ error: fetchError.message }, { status: 500 })
   }
 
   const lastActive = profile.last_active || today
@@ -94,31 +92,26 @@ export async function POST(request) {
   let newScore = profile.score || 0
   let newDailyCount = profile.daily_count || 0
 
-  console.log(`📊 Current: Score=${newScore}, Streak=${newStreak}, Daily=${newDailyCount}, LastActive=${lastActive}`)
-
-  // 🔥 Streak Logic (PKT Timezone)
+  // 🔥 2. Streak Logic (PKT)
   if (lastActive === today) {
-    // Same day: +1 score, +1 daily count
     newScore += 1
     newDailyCount += 1
     console.log("🔄 Same day visit")
   } else if (lastActive === yesterday) {
-    // Next day: +1 streak, +1 score, reset daily count to 1
     newStreak += 1
     newScore += 1
     newDailyCount = 1
-    console.log("🔄 New day visit (streak continued!)")
+    console.log(`🔄 New day (streak continued! Now ${newStreak})`)
   } else {
-    // Gap > 1 day: reset streak to 1, +1 score, reset daily count to 1
     newStreak = 1
     newScore += 1
     newDailyCount = 1
-    console.log("🔄 Gap detected, streak reset to 1")
+    console.log("🔄 Gap detected, reset to 1")
   }
 
-  console.log(`📊 Updated: Score=${newScore}, Streak=${newStreak}, Daily=${newDailyCount}`)
+  console.log(`📊 Updating: Score=${newScore}, Streak=${newStreak}, Daily=${newDailyCount}`)
 
-  // 🔥 Update profile
+  // 🔥 3. Update Profile
   const { data: updated, error: updateError } = await supabase
     .from('profiles')
     .update({
@@ -137,6 +130,6 @@ export async function POST(request) {
     return NextResponse.json({ error: updateError.message }, { status: 500 })
   }
 
-  console.log("✅ Stats updated successfully!")
+  console.log("✅ Stats updated!")
   return NextResponse.json({ success: true, profile: updated })
 }

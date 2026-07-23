@@ -135,23 +135,26 @@ export default function FeedPage() {
     fetchData()
   }, [])
 
-  // 🔥 Stats Update
-  useEffect(() => {
-    const updateStats = async () => {
-      try {
-        const response = await fetch('/api/stats', { method: 'POST' })
-        const data = await response.json()
-        if (data.success) {
-          console.log('✅ Stats updated:', data.profile)
-        } else {
-          console.error('❌ Stats update failed:', data.error)
-        }
-      } catch (e) {
-        console.log('⚠️ Stats update skipped:', e)
+// 🔥 UPDATE STATS (Score + Streak) - WITH DEBUG LOGS
+useEffect(() => {
+  const updateStats = async () => {
+    console.log("📡 Sending stats update...")
+    try {
+      const response = await fetch('/api/stats', { method: 'POST' })
+      const data = await response.json()
+      console.log("📡 Stats API Response:", data)
+      
+      if (data.success) {
+        console.log('✅ Stats updated successfully!')
+      } else {
+        console.error('❌ Stats update failed:', data.error)
       }
+    } catch (e) {
+      console.error('⚠️ Stats update crashed:', e)
     }
-    updateStats()
-  }, [])
+  }
+  updateStats()
+}, [])
 
   const filteredSummaries = selectedCategory === 'All'
     ? summaries

@@ -8,9 +8,10 @@ export default function SearchPage() {
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
   const [recentSearches, setRecentSearches] = useState([])
+  const [summarisingId, setSummarisingId] = useState(null)
+  const [summaries, setSummaries] = useState({})
   const router = useRouter()
 
-  // 🔥 Load recent searches from localStorage
   useEffect(() => {
     const saved = localStorage.getItem('sumly_recent_searches')
     if (saved) {
@@ -30,8 +31,7 @@ export default function SearchPage() {
       const data = await response.json()
       
       if (Array.isArray(data)) {
-        setResults(data)
-        // Save to recent searches
+        setResults(data.slice(0, 15))
         const updated = [searchQuery, ...recentSearches.filter(s => s !== searchQuery)].slice(0, 5)
         setRecentSearches(updated)
         localStorage.setItem('sumly_recent_searches', JSON.stringify(updated))
@@ -56,11 +56,51 @@ export default function SearchPage() {
     setResults([])
   }
 
+  // ========================
+  // 🔥 STEP 3: ON-DEMAND SUMMARISE LOGIC
+  // ========================
+  const handleSummarise = async (item) => {
+    if (summarisingId === item.id) return
+    
+    setSummarisingId(item.id)
+    setSummaries(prev => ({ ...prev, [item.id]: '⏳ Generating summary...' }))
+    
+    try {
+      const response = await fetch('/api/summarise-on-demand', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: item.source_url })
+      })
+      
+      const data = await response.json()
+      
+      // 🔥 Rate limit reached
+      if (data.error === 'limit_reached') {
+        setSummaries(prev => ({
+          ...prev,
+          [item.id]: `⚠️ ${data.message}\n📅 ${data.dateTime}\n🔁 ${data.resetInfo}`
+        }))
+        return
+      }
+      
+      if (data.success) {
+        setSummaries(prev => ({
+          ...prev,
+          [item.id]: `📝 ${data.summary}\n\n${data.message}`
+        }))
+      } else {
+        setSummaries(prev => ({ ...prev, [item.id]: `❌ ${data.error || 'Failed to summarize'}` }))
+      }
+    } catch (error) {
+      setSummaries(prev => ({ ...prev, [item.id]: '❌ Failed to summarize' }))
+    }
+    setSummarisingId(null)
+  }
+
   const handleSave = async (summaryId) => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
     
-    // Simple toggle save (will optimize later)
     const { data: existing } = await supabase
       .from('saved_news')
       .select('id')
@@ -89,13 +129,11 @@ export default function SearchPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0b] pb-20">
+    <div className="min-h-screen bg-[#0a0a0b] pb-24">
       <div className="max-w-2xl mx-auto px-4 pt-6">
         
-        {/* 🔥 Header */}
         <h1 className="text-2xl font-bold text-white mb-4">🔍 Search</h1>
 
-        {/* 🔥 Search Bar */}
         <div className="flex items-center gap-2 mb-4">
           <input
             type="text"
@@ -122,7 +160,6 @@ export default function SearchPage() {
           )}
         </div>
 
-        {/* 🔥 Recent Searches */}
         {!loading && results.length === 0 && recentSearches.length > 0 && (
           <div className="mb-4">
             <p className="text-xs text-zinc-500 mb-2">Recent searches</p>
@@ -143,14 +180,12 @@ export default function SearchPage() {
           </div>
         )}
 
-        {/* 🔥 Loading */}
         {loading && (
           <div className="flex justify-center py-12">
             <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
           </div>
         )}
 
-        {/* 🔥 Results */}
         {!loading && results.length === 0 && query && (
           <div className="bg-white/5 backdrop-blur-xl rounded-2xl p-8 text-center border border-white/10">
             <p className="text-white/70">No results found for "{query}"</p>
@@ -169,11 +204,21 @@ export default function SearchPage() {
                 <span className="text-xs font-bold text-purple-400 uppercase tracking-wider">{item.category}</span>
                 <h3 className="text-lg font-semibold mt-1 text-white">{item.title}</h3>
                 <p className="text-sm text-zinc-300 mt-1 line-clamp-2">{item.summary}</p>
-                <div className="mt-3 flex items-center justify-between">
+                
+                <div className="mt-3 flex items-center justify-between flex-wrap gap-2">
                   <a href={item.source_url} target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-400 hover:text-white transition">
                     {item.source_name || 'Unknown Source'}
                   </a>
                   <div className="flex items-center gap-2">
+                    {/* 🔥 SUMMARISE BUTTON */}
+                    <button
+                      onClick={() => handleSummarise(item)}
+                      disabled={summarisingId === item.id}
+                      className="px-3 py-1 rounded-full bg-purple-600/30 hover:bg-purple-600/50 text-xs text-white transition border border-purple-500/30 disabled:opacity-50"
+                    >
+                      {summarisingId === item.id ? '⏳' : '✨ Summarise'}
+                    </button>
+                    
                     <button
                       onClick={() => handleSave(item.id)}
                       className="text-zinc-400 hover:text-yellow-400 transition"
@@ -186,8 +231,22 @@ export default function SearchPage() {
                     >
                       ↗
                     </button>
+                    <a href={item.source_url} target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-400 hover:text-white transition">
+                      Read ↗
+                    </a>
                   </div>
                 </div>
+                
+                {/* 🔥 STEP 4: SUMMARY CARD (NO IMAGE, CARD STYLE) */}
+                {summaries[item.id] && (
+                  <div className="mt-3 pt-3 border-t border-white/10">
+                    <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-purple-500/20 p-4">
+                      <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-line">
+                        {summaries[item.id]}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>

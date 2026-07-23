@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabaseClient'
 
-// 🔥 ALL CATEGORIES (Match with Interests page)
 const ALL_CATEGORIES = [
   'Tech', 'AI', 'Health', 'Finance', 'Business', 'Science', 'Sports',
   'Games', 'Crypto', 'Stocks', 'Wars', 'History', 'Remedies', 'Startups',
@@ -93,14 +92,12 @@ export default function ProfilePage() {
       <div aria-hidden="true" className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-900/20 rounded-full blur-[120px] pointer-events-none"></div>
 
       <div className="max-w-2xl mx-auto px-4 py-8 relative z-10">
-        {/*  HEADER WITH FEED + SAVED BUTTONS */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-white">Profile</h1>
           <div className="flex gap-2">
             <button onClick={() => router.push('/feed')} className="px-3 py-1.5 rounded-full bg-white/5 backdrop-blur-md border border-white/10 text-sm text-zinc-400 hover:text-white hover:bg-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all duration-300">
               Feed
             </button>
-            {/*  SAVED BUTTON ADDED HERE */}
             <button onClick={() => router.push('/saved')} className="px-3 py-1.5 rounded-full bg-white/5 backdrop-blur-md border border-white/10 text-sm text-zinc-400 hover:text-white hover:bg-white/20 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all duration-300">
               Saved
             </button>
@@ -109,26 +106,26 @@ export default function ProfilePage() {
 
         <div className="bg-white/5 backdrop-blur-xl rounded-2xl shadow-[0_0_40px_rgba(139,92,246,0.15)] border border-white/10 p-6 space-y-4">
           
-          {/* Avatar + Username */}
+          {/* 🔥 Avatar + Email (Username hata diya) */}
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full bg-purple-600/30 flex items-center justify-center text-3xl">
-              {profile?.username?.[0]?.toUpperCase() || 'U'}
+              {profile?.user_id?.[0]?.toUpperCase() || 'U'}
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-white">{profile?.username || 'User'}</h2>
-              <p className="text-zinc-400 text-xs">{profile?.user_id}</p>
+              <p className="text-sm text-zinc-400">{profile?.user_id}</p>
             </div>
           </div>
 
-          {/* Stats Grid */}
+          {/* 🔥 Stats Grid - Streak Coming Soon */}
           <div className="grid grid-cols-3 gap-4 pt-4 border-t border-white/10">
             <div className="text-center">
               <p className="text-2xl font-bold text-purple-400">{profile?.score || 0}</p>
               <p className="text-xs text-zinc-500">Total Score</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-teal-400">{profile?.streak || 0}</p>
-              <p className="text-xs text-zinc-500"> Streak</p>
+              <p className="text-2xl font-bold text-teal-400">🔥</p>
+              <p className="text-xs text-zinc-500">Streak</p>
+              <p className="text-[10px] text-zinc-600">Coming Soon</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-yellow-400">{profile?.daily_count || 0}</p>
@@ -136,10 +133,10 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/*  INTERESTS WITH EDIT MODE */}
+          {/* Interests */}
           <div className="pt-4 border-t border-white/10">
             <div className="flex justify-between items-center mb-2">
-              <p className="text-sm text-zinc-400"> Your Interests</p>
+              <p className="text-sm text-zinc-400">📌 Your Interests</p>
               {!isEditing ? (
                 <button
                   onClick={() => {
@@ -148,7 +145,7 @@ export default function ProfilePage() {
                   }}
                   className="text-xs text-purple-400 hover:text-purple-300 transition"
                 >
-                   Edit
+                  ✏️ Edit
                 </button>
               ) : (
                 <div className="flex gap-2">
@@ -156,7 +153,7 @@ export default function ProfilePage() {
                     onClick={saveInterests}
                     className="text-xs text-teal-400 hover:text-teal-300 transition"
                   >
-                     Save
+                    💾 Save
                   </button>
                   <button
                     onClick={() => {
@@ -207,7 +204,6 @@ export default function ProfilePage() {
             )}
           </div>
 
-          {/* 🔥 LOGOUT BUTTON (YAHIN RAKHA) */}
           <button onClick={handleLogout} className="w-full mt-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-zinc-400 hover:text-white hover:bg-white/10 transition">
             Logout
           </button>

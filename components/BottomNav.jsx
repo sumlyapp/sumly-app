@@ -1,19 +1,35 @@
 'use client'
 import { useRouter, usePathname } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { supabase } from '../lib/supabaseClient'
 
 export default function BottomNav() {
   const router = useRouter()
   const pathname = usePathname()
-  
-  const isHome = pathname === '/feed' || pathname === '/'
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setIsAuthenticated(!!user)
+    }
+    checkAuth()
+  }, [pathname])
+
+  // 🔥 SIRF YEH 3 PAGES (BAAKI SAB JAGAH NAHI)
+  const allowedPages = ['/feed', '/search', '/profile']
+  const shouldShow = isAuthenticated && allowedPages.includes(pathname)
+
+  // 🔥 Agar allowedPages mein nahi hai toh kuch mat dikhao
+  if (!shouldShow) return null
+
+  const isHome = pathname === '/feed'
   const isSearch = pathname === '/search'
 
   return (
-    // 🔥 Liquid Glass - Transparent bar with blur, no black background
     <div className="fixed bottom-4 left-0 right-0 z-50 flex justify-center px-4">
       <div className="flex items-center gap-8 px-6 py-2.5 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 shadow-[0_0_40px_rgba(139,92,246,0.15)]">
         
-        {/* 🔥 HOME BUTTON */}
         <button
           onClick={() => router.push('/feed')}
           className={`flex items-center gap-2 px-4 py-1.5 rounded-full transition-all duration-300 ${
@@ -28,7 +44,6 @@ export default function BottomNav() {
           <span className="text-xs font-medium">Home</span>
         </button>
 
-        {/* 🔥 SEARCH BUTTON */}
         <button
           onClick={() => router.push('/search')}
           className={`flex items-center gap-2 px-4 py-1.5 rounded-full transition-all duration-300 ${

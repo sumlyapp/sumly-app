@@ -1,12 +1,65 @@
-export default function Button({ children, onClick, type = "button", variant = "primary", className = "" }) {
-  const base = "px-6 py-2.5 rounded-full font-semibold transition duration-200 ease-in-out text-sm shadow-md hover:shadow-lg disabled:opacity-50"
-  const variants = {
-    primary: "bg-gradient-to-r from-teal-500 to-cyan-600 text-white hover:from-teal-600 hover:to-cyan-700",
-    outline: "border-2 border-white/60 text-white hover:bg-white/20 backdrop-blur-sm"
-  }
+'use client'
+import { useRouter, usePathname } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { supabase } from '../lib/supabaseClient'
+
+export default function BottomNav() {
+  const router = useRouter()
+  const pathname = usePathname()
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setIsAuthenticated(!!user)
+    }
+    checkAuth()
+  }, [pathname])
+
+  // 🔥 SIRF YEH 3 PAGES (BAAKI SAB JAGAH NAHI)
+  const allowedPages = ['/feed', '/search', '/profile']
+  const shouldShow = isAuthenticated && allowedPages.includes(pathname)
+
+  if (!shouldShow) return null
+
+  const isHome = pathname === '/feed'
+  const isSearch = pathname === '/search'
+
   return (
-    <button type={type} onClick={onClick} className={`${base} ${variants[variant]} ${className}`}>
-      {children}
-    </button>
+    <div className="fixed bottom-4 left-0 right-0 z-50 flex justify-center px-4">
+      <div className="flex items-center gap-8 px-6 py-2.5 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 shadow-[0_0_40px_rgba(139,92,246,0.15)]">
+        
+        {/* HOME BUTTON */}
+        <button
+          onClick={() => router.push('/feed')}
+          className={`flex items-center gap-2 px-4 py-1.5 rounded-full transition-all duration-300 ${
+            isHome 
+              ? 'bg-white text-[#0a0a0b] shadow-lg shadow-purple-900/20' 
+              : 'text-zinc-400 hover:text-white hover:bg-white/10'
+          }`}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill={isHome ? 'currentColor' : 'none'} viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+          </svg>
+          <span className="text-xs font-medium">Home</span>
+        </button>
+
+        {/* SEARCH BUTTON */}
+        <button
+          onClick={() => router.push('/search')}
+          className={`flex items-center gap-2 px-4 py-1.5 rounded-full transition-all duration-300 ${
+            isSearch 
+              ? 'bg-white text-[#0a0a0b] shadow-lg shadow-purple-900/20' 
+              : 'text-zinc-400 hover:text-white hover:bg-white/10'
+          }`}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill={isSearch ? 'currentColor' : 'none'} viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+          </svg>
+          <span className="text-xs font-medium">Search</span>
+        </button>
+
+      </div>
+    </div>
   )
 }

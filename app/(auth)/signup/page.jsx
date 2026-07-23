@@ -15,20 +15,23 @@ export default function SignupPage() {
   const handleSignUp = async (e) => {
     e.preventDefault()
     setLoading(true)
-    const { error } = await supabase.auth.signUp({ email, password })
+    const { data, error } = await supabase.auth.signUp({ email, password })
     setLoading(false)
+    
     if (error) {
       alert(error.message)
-    } else {
-      alert('✅ Check your email for confirmation!')
-      router.push('/interests')  // 🔥 Device select hata diya
+      return
+    }
+    
+    if (data?.user) {
+      router.push('/interests')
     }
   }
 
   const handleGoogleSignUp = async () => {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin + '/feed' }  // 🔥 Seedha feed
+      options: { redirectTo: window.location.origin + '/signup' }
     })
   }
 
@@ -42,7 +45,6 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen flex items-center justify-center font-sans antialiased relative overflow-hidden bg-[#0a0a0b]">
       
-      {/* Background Beams */}
       <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1)_0%,transparent_40%)] pointer-events-none"></div>
       <div aria-hidden="true" className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-900/20 rounded-full blur-[120px] pointer-events-none"></div>
 
@@ -57,29 +59,39 @@ export default function SignupPage() {
             boxShadow: 'rgba(139, 92, 246, 0.15) 0px 0px 80px, rgba(255, 255, 255, 0.1) 0px 0px 30px inset, rgba(255, 255, 255, 0.4) 0px 1px 0px inset, rgba(255, 255, 255, 0.1) 0px -1px 0px inset'
           }}
         >
-          <header className="text-center mb-8">
-            <div className="mb-4 flex justify-center">
-              <svg className="text-white" fill="none" height="40" viewBox="0 0 40 40" width="40" xmlns="http://www.w3.org/2000/svg">
-                <path d="M20 4C20.5523 4 21 4.44772 21 5C21 5.55228 20.5523 6 20 6C19.4477 6 19 5.55228 19 5C19 4.44772 19.4477 4 20 4Z" fill="currentColor" />
-                <path d="M28 6.14355C28.2761 6.14355 28.5 6.36741 28.5 6.64355C28.5 6.9197 28.2761 7.14355 28 7.14355C27.7239 7.14355 27.5 6.9197 27.5 6.64355C27.5 6.36741 27.7239 6.14355 28 6.14355Z" fill="currentColor" />
-                <path d="M12 6.14355C12.2761 6.14355 12.5 6.36741 12.5 6.64355C12.5 6.9197 12.2761 7.14355 12 7.14355C11.7239 7.14355 11.5 6.9197 11.5 6.64355C11.5 6.36741 11.7239 6.14355 12 6.14355Z" fill="currentColor" />
-                <circle cx="20" cy="20" fill="currentColor" r="2" />
-                <circle cx="28" cy="12" fill="currentColor" r="1.5" />
-                <circle cx="12" cy="12" fill="currentColor" r="1.5" />
-                <circle cx="32" cy="20" fill="currentColor" r="1.5" />
-                <circle cx="8" cy="20" fill="currentColor" r="1.5" />
-                <circle cx="28" cy="28" fill="currentColor" r="1.5" />
-                <circle cx="12" cy="28" fill="currentColor" r="1.5" />
-                <circle cx="20" cy="32" fill="currentColor" r="1.5" />
+          {/* 🔥 SIRF LOGO + SUMLY (Tagline Hata Diya) */}
+          <header className="text-center mb-6">
+            <div className="mb-3 flex justify-center">
+              <svg width="60" height="60" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="glassGradSignup" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#4f46e5" />
+                    <stop offset="50%" stop-color="#8b5cf6" />
+                    <stop offset="100%" stop-color="#06b6d4" />
+                  </linearGradient>
+                  <filter id="glowSignup" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="5" result="blur"/>
+                    <feMerge>
+                      <feMergeNode in="blur"/>
+                      <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                  </filter>
+                </defs>
+                <circle cx="40" cy="40" r="35" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
+                <text x="40" y="52" fontFamily="Georgia, serif" fontSize="40" fontWeight="bold" fill="url(#glassGradSignup)" textAnchor="middle" filter="url(#glowSignup)">
+                  S
+                </text>
               </svg>
             </div>
-            <h1 className="text-white text-2xl font-bold mb-2 tracking-tight">Sign Up</h1>
-            <p className="text-zinc-400 text-sm">Create your account to get started.</p>
+            <h1 className="text-3xl font-extrabold text-white drop-shadow-lg tracking-tight">Sumly</h1>
           </header>
 
-          {/* Form */}
+          <div className="w-full">
+            <h2 className="text-white text-2xl font-bold mb-1 text-center">Sign Up</h2>
+            <p className="text-zinc-400 text-sm text-center mb-6">Create your account to get started.</p>
+          </div>
+
           <form onSubmit={handleSignUp} className="w-full space-y-4">
-            {/* Email */}
             <div>
               <input
                 type="email"
@@ -93,7 +105,6 @@ export default function SignupPage() {
               />
             </div>
 
-            {/* Password */}
             <div className="space-y-2">
               <div className="relative">
                 <input
@@ -125,7 +136,6 @@ export default function SignupPage() {
               </div>
             </div>
 
-            {/* Sign Up Button */}
             <div className="pt-2">
               <button
                 type="submit"
@@ -137,7 +147,6 @@ export default function SignupPage() {
             </div>
           </form>
 
-          {/* OR + Google */}
           <div className="w-full mt-6">
             <div className="flex items-center gap-4 mb-6">
               <div className="h-[1px] flex-1 bg-zinc-800"></div>
@@ -161,7 +170,7 @@ export default function SignupPage() {
             <p className="text-center mt-8 text-sm text-zinc-500">
               Already have an account?{' '}
               <Link href="/login" className="text-white hover:underline transition-all">
-                Sign in
+                Login
               </Link>
             </p>
           </div>

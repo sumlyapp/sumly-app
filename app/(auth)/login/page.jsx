@@ -23,17 +23,16 @@ export default function LoginPage() {
       return
     }
 
-    // ✅ Check if user has interests
-    const { data: interests, error: interestError } = await supabase
+    const { data: interests } = await supabase
       .from('user_interests')
       .select('id')
       .eq('user_id', data.user.id)
       .limit(1)
 
     if (interests && interests.length > 0) {
-      router.push('/feed')       // 🔥 Already has interests → Feed
+      router.push('/feed')
     } else {
-      router.push('/interests')  // 🔥 New user / No interests → Interests
+      router.push('/interests')
     }
   }
 
@@ -68,25 +67,37 @@ export default function LoginPage() {
             boxShadow: 'rgba(139, 92, 246, 0.15) 0px 0px 80px, rgba(255, 255, 255, 0.1) 0px 0px 30px inset, rgba(255, 255, 255, 0.4) 0px 1px 0px inset, rgba(255, 255, 255, 0.1) 0px -1px 0px inset'
           }}
         >
-          <header className="text-center mb-8">
-            <div className="mb-4 flex justify-center">
-              <svg className="text-white" fill="none" height="40" viewBox="0 0 40 40" width="40" xmlns="http://www.w3.org/2000/svg">
-                <path d="M20 4C20.5523 4 21 4.44772 21 5C21 5.55228 20.5523 6 20 6C19.4477 6 19 5.55228 19 5C19 4.44772 19.4477 4 20 4Z" fill="currentColor" />
-                <path d="M28 6.14355C28.2761 6.14355 28.5 6.36741 28.5 6.64355C28.5 6.9197 28.2761 7.14355 28 7.14355C27.7239 7.14355 27.5 6.9197 27.5 6.64355C27.5 6.36741 27.7239 6.14355 28 6.14355Z" fill="currentColor" />
-                <path d="M12 6.14355C12.2761 6.14355 12.5 6.36741 12.5 6.64355C12.5 6.9197 12.2761 7.14355 12 7.14355C11.7239 7.14355 11.5 6.9197 11.5 6.64355C11.5 6.36741 11.7239 6.14355 12 6.14355Z" fill="currentColor" />
-                <circle cx="20" cy="20" fill="currentColor" r="2" />
-                <circle cx="28" cy="12" fill="currentColor" r="1.5" />
-                <circle cx="12" cy="12" fill="currentColor" r="1.5" />
-                <circle cx="32" cy="20" fill="currentColor" r="1.5" />
-                <circle cx="8" cy="20" fill="currentColor" r="1.5" />
-                <circle cx="28" cy="28" fill="currentColor" r="1.5" />
-                <circle cx="12" cy="28" fill="currentColor" r="1.5" />
-                <circle cx="20" cy="32" fill="currentColor" r="1.5" />
+          {/* 🔥 SIRF LOGO + SUMLY (Tagline Hata Diya) */}
+          <header className="text-center mb-6">
+            <div className="mb-3 flex justify-center">
+              <svg width="60" height="60" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="glassGradLogin" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#4f46e5" />
+                    <stop offset="50%" stop-color="#8b5cf6" />
+                    <stop offset="100%" stop-color="#06b6d4" />
+                  </linearGradient>
+                  <filter id="glowLogin" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="5" result="blur"/>
+                    <feMerge>
+                      <feMergeNode in="blur"/>
+                      <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                  </filter>
+                </defs>
+                <circle cx="40" cy="40" r="35" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
+                <text x="40" y="52" fontFamily="Georgia, serif" fontSize="40" fontWeight="bold" fill="url(#glassGradLogin)" textAnchor="middle" filter="url(#glowLogin)">
+                  S
+                </text>
               </svg>
             </div>
-            <h1 className="text-white text-2xl font-bold mb-2 tracking-tight">Sign In</h1>
-            <p className="text-zinc-400 text-sm">Please enter your details to sign in.</p>
+            <h1 className="text-3xl font-extrabold text-white drop-shadow-lg tracking-tight">Sumly</h1>
           </header>
+
+          <div className="w-full">
+            <h2 className="text-white text-2xl font-bold mb-1 text-center">Login</h2>
+            <p className="text-zinc-400 text-sm text-center mb-6">Please enter your details to log in.</p>
+          </div>
 
           <form onSubmit={handleLogin} className="w-full space-y-4">
             <div>
@@ -132,7 +143,9 @@ export default function LoginPage() {
                 </button>
               </div>
               <div className="text-right">
-                <Link href="/forgot-password" className="text-zinc-400 text-xs hover:text-white transition-colors">Forgot Password?</Link>
+                <Link href="/forgot-password" className="text-zinc-400 text-xs hover:text-white transition-colors">
+                  Forgot Password?
+                </Link>
               </div>
             </div>
 
@@ -142,7 +155,7 @@ export default function LoginPage() {
                 disabled={loading}
                 className="w-full bg-white text-[#0a0a0b] hover:bg-zinc-200 font-semibold py-3.5 rounded-full transition-all duration-300 shadow-lg shadow-purple-900/20 disabled:opacity-50"
               >
-                {loading ? 'Loading...' : 'Login'}  {/* 🔥 SIGN IN -> LOGIN */}
+                {loading ? 'Loading...' : 'Login'}
               </button>
             </div>
           </form>
@@ -169,7 +182,9 @@ export default function LoginPage() {
 
             <p className="text-center mt-8 text-sm text-zinc-500">
               Don't have an account?{' '}
-              <Link href="/signup" className="text-white hover:underline transition-all">Sign up</Link>
+              <Link href="/signup" className="text-white hover:underline transition-all">
+                Sign up
+              </Link>
             </p>
           </div>
         </div>

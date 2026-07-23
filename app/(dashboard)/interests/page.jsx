@@ -2,14 +2,10 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabaseClient'
-import Button from '../../../components/ui/Button'
 
-// CATEGORIES LIST
 const categories = [
   'Tech', 'AI', 'Health', 'Finance', 'Business', 'Science', 'Sports',
-  'Games',  //  NEW
-  'Books',  // NEW
-  'Crypto', 'Stocks', 'Wars', 'History', 'Remedies', 'Startups',
+  'Games', 'Crypto', 'Stocks', 'Wars', 'History', 'Remedies', 'Startups',
   'AI Tools', 'Reddit'
 ]
 
@@ -59,6 +55,7 @@ export default function InterestsPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center font-sans antialiased relative overflow-hidden bg-[#0a0a0b]">
+      
       <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1)_0%,transparent_40%)] pointer-events-none"></div>
       <div aria-hidden="true" className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-900/20 rounded-full blur-[120px] pointer-events-none"></div>
 
@@ -73,11 +70,37 @@ export default function InterestsPage() {
             boxShadow: 'rgba(139, 92, 246, 0.15) 0px 0px 80px, rgba(255, 255, 255, 0.1) 0px 0px 30px inset, rgba(255, 255, 255, 0.4) 0px 1px 0px inset, rgba(255, 255, 255, 0.1) 0px -1px 0px inset'
           }}
         >
-          {/*  HEADER - No Dots, Simple Emoji */}
-          <header className="text-center mb-8">
-            <h1 className="text-white text-2xl font-bold mb-2 tracking-tight">Select Interests</h1>
-            <p className="text-zinc-400 text-sm">Pick at least 3 topics you love.</p>
+          {/* 🔥 SIRF LOGO + SUMLY (Tagline Hata Diya) */}
+          <header className="text-center mb-6">
+            <div className="mb-3 flex justify-center">
+              <svg width="60" height="60" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="glassGradInterest" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#4f46e5" />
+                    <stop offset="50%" stop-color="#8b5cf6" />
+                    <stop offset="100%" stop-color="#06b6d4" />
+                  </linearGradient>
+                  <filter id="glowInterest" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="5" result="blur"/>
+                    <feMerge>
+                      <feMergeNode in="blur"/>
+                      <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                  </filter>
+                </defs>
+                <circle cx="40" cy="40" r="35" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
+                <text x="40" y="52" fontFamily="Georgia, serif" fontSize="40" fontWeight="bold" fill="url(#glassGradInterest)" textAnchor="middle" filter="url(#glowInterest)">
+                  S
+                </text>
+              </svg>
+            </div>
+            <h1 className="text-3xl font-extrabold text-white drop-shadow-lg tracking-tight">Sumly</h1>
           </header>
+
+          <div className="w-full">
+            <h2 className="text-white text-2xl font-bold mb-1 text-center">Select Interests</h2>
+            <p className="text-zinc-400 text-sm text-center mb-6">Pick at least 3 topics you love.</p>
+          </div>
 
           <div className="w-full space-y-4">
             <div className="flex flex-wrap gap-2 justify-center">

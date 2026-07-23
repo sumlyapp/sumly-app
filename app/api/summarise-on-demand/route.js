@@ -4,9 +4,19 @@ import { NextResponse } from 'next/server'
 import { Groq } from 'groq-sdk'
 import * as cheerio from 'cheerio'
 
-// 🔥 Limit
+// 🔥 GROQ API Key (Separate for summariser)
+const GROQ_API_KEY = process.env.GROQ_API_KEY_SUMMARISER || process.env.GROQ_API_KEY
+
+if (!GROQ_API_KEY) {
+  throw new Error('Missing GROQ_API_KEY_SUMMARISER or GROQ_API_KEY in environment')
+}
+
+const groq = new Groq({ apiKey: GROQ_API_KEY })
 const DAILY_LIMIT = 4
 
+// ========================
+// 🔥 SCRAPE ARTICLE TEXT
+// ========================
 async function fetchArticleText(url) {
   try {
     const response = await fetch(url, {
@@ -21,7 +31,6 @@ async function fetchArticleText(url) {
     // Remove unwanted elements
     $('script, style, nav, header, footer, aside, .ad, .sidebar').remove()
     
-    // Extract main content
     let text = ''
     $('article, main, .content, #content, .post-content, .entry-content').each((i, el) => {
       text += $(el).text() + ' '
@@ -38,7 +47,10 @@ async function fetchArticleText(url) {
   }
 }
 
-async function generateSummary(text, groq) {
+// ========================
+// 🤖 GENERATE SUMMARY
+// ========================
+async function generateSummary(text) {
   if (!text || text.length < 50) {
     return "Article content too short to summarize."
   }
@@ -70,12 +82,14 @@ async function generateSummary(text, groq) {
   }
 }
 
+// ========================
+// 🕐 PKT TIME
+// ========================
 function getPKTDateTime() {
   const now = new Date()
   const pkt = new Date(now.getTime() + 5 * 60 * 60 * 1000)
   return {
     date: pkt.toISOString().split('T')[0],
-    time: pkt.toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit' }),
     full: pkt.toLocaleString('en-PK', { 
       weekday: 'short', 
       day: 'numeric', 
@@ -87,13 +101,11 @@ function getPKTDateTime() {
   }
 }
 
+// ========================
+// 🚀 POST HANDLER
+// ========================
 export async function POST(request) {
   try {
-    // ✅ NOW USING GROQ_API_KEY (changed from GROQ_API_KEY_SUMMARISER)
-    const groq = new Groq({
-      apiKey: process.env.GROQ_API_KEY,
-    })
-
     const cookieStore = cookies()
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -138,14 +150,12 @@ export async function POST(request) {
       }, { status: 429 })
     }
     
-    // Scrape article
     const text = await fetchArticleText(url)
     if (!text) {
       return NextResponse.json({ error: 'Could not extract article content' }, { status: 500 })
     }
     
-    // Generate summary
-    const summary = await generateSummary(text, groq)
+    const summary = await generateSummary(text)
     
     // Update usage
     if (usageData) {

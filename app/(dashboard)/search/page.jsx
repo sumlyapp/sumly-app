@@ -14,9 +14,7 @@ export default function SearchPage() {
 
   useEffect(() => {
     const saved = localStorage.getItem('sumly_recent_searches')
-    if (saved) {
-      setRecentSearches(JSON.parse(saved).slice(0, 5))
-    }
+    if (saved) setRecentSearches(JSON.parse(saved).slice(0, 5))
   }, [])
 
   const handleSearch = async (searchQuery) => {
@@ -26,6 +24,9 @@ export default function SearchPage() {
     }
 
     setLoading(true)
+    setResults([])
+    setSummaries({})
+
     try {
       const response = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`)
       const data = await response.json()
@@ -37,6 +38,7 @@ export default function SearchPage() {
         localStorage.setItem('sumly_recent_searches', JSON.stringify(updated))
       } else {
         setResults([])
+        if (data.error) alert(data.error)
       }
     } catch (error) {
       console.error('Search error:', error)
@@ -46,19 +48,15 @@ export default function SearchPage() {
   }
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && query.trim()) {
-      handleSearch(query)
-    }
+    if (e.key === 'Enter' && query.trim()) handleSearch(query)
   }
 
   const handleClear = () => {
     setQuery('')
     setResults([])
+    setSummaries({})
   }
 
-  // ========================
-  // 🔥 STEP 3: ON-DEMAND SUMMARISE LOGIC
-  // ========================
   const handleSummarise = async (item) => {
     if (summarisingId === item.id) return
     
@@ -74,7 +72,6 @@ export default function SearchPage() {
       
       const data = await response.json()
       
-      // 🔥 Rate limit reached
       if (data.error === 'limit_reached') {
         setSummaries(prev => ({
           ...prev,
@@ -97,24 +94,8 @@ export default function SearchPage() {
     setSummarisingId(null)
   }
 
-  const handleSave = async (summaryId) => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/login'); return }
-    
-    const { data: existing } = await supabase
-      .from('saved_news')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('summary_id', summaryId)
-      .single()
-
-    if (existing) {
-      await supabase.from('saved_news').delete().eq('id', existing.id)
-    } else {
-      await supabase.from('saved_news').insert({ user_id: user.id, summary_id: summaryId })
-    }
-    // Refresh results to update save state
-    handleSearch(query)
+  const handleSave = async () => {
+    alert('💡 This is a search result. Save feature is available in Feed for stored summaries.')
   }
 
   const handleShare = async (title, summary, url) => {
@@ -137,7 +118,7 @@ export default function SearchPage() {
         <div className="flex items-center gap-2 mb-4">
           <input
             type="text"
-            placeholder="Search articles..."
+            placeholder="Search any topic..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -160,7 +141,7 @@ export default function SearchPage() {
           )}
         </div>
 
-        {!loading && results.length === 0 && recentSearches.length > 0 && (
+        {!loading && results.length === 0 && recentSearches.length > 0 && !query && (
           <div className="mb-4">
             <p className="text-xs text-zinc-500 mb-2">Recent searches</p>
             <div className="flex flex-wrap gap-2">
@@ -206,11 +187,8 @@ export default function SearchPage() {
                 <p className="text-sm text-zinc-300 mt-1 line-clamp-2">{item.summary}</p>
                 
                 <div className="mt-3 flex items-center justify-between flex-wrap gap-2">
-                  <a href={item.source_url} target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-400 hover:text-white transition">
-                    {item.source_name || 'Unknown Source'}
-                  </a>
+                  <span className="text-xs text-zinc-400">{item.source_name}</span>
                   <div className="flex items-center gap-2">
-                    {/* 🔥 SUMMARISE BUTTON */}
                     <button
                       onClick={() => handleSummarise(item)}
                       disabled={summarisingId === item.id}
@@ -218,9 +196,8 @@ export default function SearchPage() {
                     >
                       {summarisingId === item.id ? '⏳' : '✨ Summarise'}
                     </button>
-                    
                     <button
-                      onClick={() => handleSave(item.id)}
+                      onClick={handleSave}
                       className="text-zinc-400 hover:text-yellow-400 transition"
                     >
                       ☆
@@ -237,7 +214,6 @@ export default function SearchPage() {
                   </div>
                 </div>
                 
-                {/* 🔥 STEP 4: SUMMARY CARD (NO IMAGE, CARD STYLE) */}
                 {summaries[item.id] && (
                   <div className="mt-3 pt-3 border-t border-white/10">
                     <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-purple-500/20 p-4">

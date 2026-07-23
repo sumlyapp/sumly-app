@@ -1,10 +1,13 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabaseClient'
 
+// 🔥 Sab se zaroori line: Force dynamic (build par prerender nahi karega)
+export const dynamic = 'force-dynamic'
+
 // ========================
-// 🔥 FALLBACK FACTS (20 total)
+// 🔥 FALLBACK FACTS
 // ========================
 const FALLBACK_FACTS = [
   "A jellyfish is 95% water.",
@@ -74,9 +77,14 @@ export default function FeedPage() {
   const [allCategories, setAllCategories] = useState([])
   const [savedIds, setSavedIds] = useState([])
   const [factCards, setFactCards] = useState([])
+  const [queryParam, setQueryParam] = useState(null)
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const queryParam = searchParams.get('q')
+
+  // 🔥 Search query ko client-side safe tareeqe se uthao
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    setQueryParam(params.get('q'))
+  }, [])
 
   const handleSave = async (summaryId) => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -139,9 +147,7 @@ export default function FeedPage() {
     fetchData()
   }, [queryParam])
 
-  // 🔥 ========================
-  // 🔥 FIX: UPDATE STATS (Score + Streak) - YEH ADD KARO
-  // 🔥 ========================
+  // 🔥 Stats Update
   useEffect(() => {
     const updateStats = async () => {
       try {
@@ -195,7 +201,6 @@ export default function FeedPage() {
       <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1)_0%,transparent_40%)] pointer-events-none"></div>
       <div aria-hidden="true" className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-900/20 rounded-full blur-[120px] pointer-events-none"></div>
 
-      {/* HEADER - Sirf Profile + Leaderboard */}
       <div className="sticky top-0 z-20 bg-[#0a0a0b]/80 backdrop-blur-xl border-b border-white/10">
         <div className="flex justify-between items-center px-4 py-3">
           
